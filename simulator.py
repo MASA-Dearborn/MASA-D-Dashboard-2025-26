@@ -50,7 +50,6 @@ def flight_profile(t):
     
     return alt, vel, accel, state
 
-# LORA PACKET GENERATOR
 def generate_packet(cycle, t):
     alt, vel, accel, state = flight_profile(t)
     
@@ -79,7 +78,6 @@ def generate_packet(cycle, t):
     
     return packet
 
-# Rocket simulator (transmitter with integrated LoRa channel)
 def rocket_simulator(backend_callback):
     """
     Rocket simulator with integrated virtual LoRa channel.
@@ -102,11 +100,9 @@ def rocket_simulator(backend_callback):
             time.sleep(DT)
             continue
         
-        # Generate packet
         packet = generate_packet(cycle, t)
         json_packet = json.dumps(packet)
         
-        # Send directly to backend processor (simulates LoRa reception)
         backend_callback(json_packet)
         print(f"[ROCKET TX] Packet {cycle}")
         
