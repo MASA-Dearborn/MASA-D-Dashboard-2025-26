@@ -50,6 +50,7 @@ def flight_profile(t):
     
     return alt, vel, accel, state
 
+# LORA PACKET GENERATOR
 def generate_packet(cycle, t):
     alt, vel, accel, state = flight_profile(t)
     
@@ -94,7 +95,6 @@ def rocket_simulator(backend_callback):
         cycle += 1
         t = time.time() - start_time
         
-        # Packet drop simulation (simulates LoRa transmission failure)
         if random.random() < PACKET_DROP_PROBABILITY:
             print(f"[DROP] Packet {cycle}")
             time.sleep(DT)
@@ -106,7 +106,6 @@ def rocket_simulator(backend_callback):
         backend_callback(json_packet)
         print(f"[ROCKET TX] Packet {cycle}")
         
-        # Wait for next packet
         time.sleep(DT)
     
     stop_event.set()
