@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+pydantic
+requests
+flask==3.0.0
+flask-cors==4.0.0
+pyserial>=3.5
