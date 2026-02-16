@@ -1,0 +1,494 @@
+/* ==========================================================================
+   CUSTOM FONTS
+   ========================================================================== */
+@font-face {
+  font-family: "Digital-7";
+  src: url("./assets/alarm_clock.ttf") format("truetype");
+}
+
+/* ==========================================================================
+   COLOR PALETTE (CSS Variables)
+   ========================================================================== */
+:root {
+  --maize: #FFCB05;        /* University of Michigan maize yellow */
+  --blue: #00274C;         /* University of Michigan blue */
+  --dark: #131516;         /* Dark background */
+  --tan: #CFC096;          /* Tan/beige for secondary text */
+}
+
+/* ==========================================================================
+   GLOBAL RESET
+   ========================================================================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   HUD CONTAINER - Main wrapper with gradient background
+   ========================================================================== */
+.hud-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: linear-gradient(180deg, #000000 0%, #1a1510 100%);
+}
+
+/* ==========================================================================
+   ROCKET MISSION TIMER - Top center mission clock
+   Styled digital display with glowing border
+   ========================================================================== */
+.rocket-timer-container {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  background: linear-gradient(135deg, rgba(0, 39, 76, 0.95), rgba(19, 21, 22, 0.95));
+  border: 2px solid #FFCB05;
+  border-radius: 20px;
+  padding: 15px 30px;
+  box-shadow: 
+    0 0 20px rgba(255, 203, 5, 0.3),           /* Outer glow */
+    inset 0 0 20px rgba(0, 0, 0, 0.5);         /* Inner shadow for depth */
+  backdrop-filter: blur(10px);
+}
+
+.timer-header {
+  color: #CFC096;
+  font-size: 10px;
+  letter-spacing: 3px;
+  margin-bottom: 8px;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.timer-display {
+  font-family: "Digital-7", "Courier New", monospace;
+  font-size: 36px;
+  color: #FFCB05;
+  text-shadow: 
+    0 0 15px rgba(255, 203, 5, 0.8),           /* Bright inner glow */
+    0 0 30px rgba(255, 203, 5, 0.4);           /* Softer outer glow */
+  letter-spacing: 3px;
+  text-align: center;
+}
+
+/* ==========================================================================
+   NAVBALL ASSEMBLY - Center container for navball and canvas
+   ========================================================================== */
+.navball-assembly {
+  position: relative;
+  width: 600px;
+  height: 600px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.gauge-ring {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;      /* Allow clicks to pass through */
+  z-index: 10;
+}
+
+/* ==========================================================================
+   GLOW RINGS - Decorative animated glow around navball
+   ========================================================================== */
+.glow-container {
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.outer-glow {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 3px solid var(--maize);
+  border-radius: 50%;
+  box-shadow:
+    0 0 60px rgba(255, 203, 5, 0.4),
+    0 0 120px rgba(255, 203, 5, 0.2),
+    inset 0 0 60px rgba(128, 102, 2, 0.1);
+  animation: pulse 4s infinite;
+}
+
+.inner-glow {
+  position: absolute;
+  top: 25px;
+  left: 25px;
+  width: 270px;
+  height: 270px;
+  border: 2px solid var(--blue);
+  border-radius: 50%;
+  box-shadow:
+    0 0 40px rgba(0, 39, 76, 0.6),
+    inset 0 0 50px rgba(0, 39, 76, 0.3);
+}
+
+/* Breathing pulse animation */
+@keyframes pulse {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.02); }
+}
+
+/* ==========================================================================
+   CANVAS WRAPPER - Three.js navball rendering area
+   ========================================================================== */
+.canvas-wrapper {
+  position: static;
+  width: 300px;
+  height: 300px;
+  z-index: 200000;
+}
+
+.canvas-container {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow:
+    inset 0 0 80px rgba(0, 0, 0, 1),           /* Deep inner shadow */
+    0 0 0 3px rgba(255, 203, 5, 0.6),          /* Thin border glow */
+    0 0 60px rgba(0, 0, 0, 0.9);               /* Outer shadow for depth */
+  z-index: 200000000000000;
+}
+
+/* ==========================================================================
+   SIDE GAUGES - Left and right acceleration/velocity displays
+   ========================================================================== */
+.side-gauge {
+  position: absolute;
+  width: 300px;
+  height: 400px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.side-gauge.left {
+  left: -80px;
+}
+
+.side-gauge.right {
+  right: -80px;
+}
+
+/* ==========================================================================
+   GAUGE TICKS - Circular tick marks around gauge edge
+   ========================================================================== */
+.ticks-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+   transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 15;
+}
+
+/* Minor tick marks (small cyan lines) */
+.tick {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 15px;
+  background: #00B2A9;
+  transform-origin: center bottom;
+  margin-left: -1px;
+  margin-top: -15px;
+  opacity: 0.6;
+}
+
+/* Major tick marks (every 9th tick - larger, bright yellow) */
+.tick.major {
+  width: 3px;
+  height: 22px;
+  margin-left: -1.5px;
+  margin-top: -22px;
+  background: var(--maize);
+  box-shadow: 0 0 10px var(--maize);
+  opacity: 1;
+}
+
+/* ==========================================================================
+   GAUGE BACKGROUND RING - Black donut behind ticks
+   ========================================================================== */
+.gauge-ring-bg {
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  border: 50px solid black;
+  border-radius: 50%;
+  opacity: 0.9;
+  z-index: 5;
+}
+
+/* ==========================================================================
+   GAUGE BADGES - Center value display with curved label
+   ========================================================================== */
+.gauge-badge-left,
+.gauge-badge-right {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 110px;
+  height: 110px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 20;
+}
+
+.badge-arc {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
+}
+
+/* Circular background for badge */
+.badge-arc-path {
+  d: path("M 10,50 a 40,40 0 1,0 80,0 a 40,40 0 1,0 -80,0");
+  fill: rgba(0, 39, 76, 0.9);
+  stroke: #FFCB05;
+  stroke-width: 2;
+}
+
+/* Curved path for label text */
+.badge-curve {
+  d: path("M 80,50 a 30,30 0 1,1 -60,0 a 30,30 0 1,1 60,0");
+  transform: rotate(25deg);
+  transform-origin: 50px 50px;
+  fill: none;
+}
+
+.badge-content {
+  position: relative;
+  text-align: center;
+  margin-top: 15px;
+}
+
+/* Large digital gauge value */
+.badge-value {
+  font-family: "Digital-7", monospace;
+  font-size: 37px;
+  color: var(--maize);
+  text-shadow: 0 0 20px var(--maize);
+  display: block;
+  line-height: 1;
+}
+
+/* Curved label text (e.g., "ACCELERATION") */
+.badge-label-text {
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  font-weight: bold;
+  text-transform: uppercase;
+  fill: aquamarine;
+}
+
+/* ==========================================================================
+   GAUGE ARROW INDICATOR - Triangular pointer on gauge side
+   ========================================================================== */
+.gauge-arrow-indicator {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 99;
+}
+
+.gauge-arrow-indicator.left {
+  left: -20px;
+}
+
+.gauge-arrow-indicator.right {
+  right: -20px;
+}
+
+.arrow-svg {
+  width: 30px;
+  height: 20px;
+}
+
+.arrow-path {
+  fill: red;
+}
+
+/* Left-pointing triangle */
+.arrow-path.left {
+  d: path("M 6,10 L 24,0 L 24,20 Z");
+}
+
+/* Right-pointing triangle */
+.arrow-path.right {
+  d: path("M 24,10 L 6,0 L 6,20 Z");
+}
+
+/* ==========================================================================
+   SLIDING DIGITS LAYER - Circular digit labels around gauge
+   ========================================================================== */
+.digit-arc-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.digit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-family: "Digital-7", monospace;
+  font-size: 12px;
+  font-weight: bold;
+  color: #CFC096;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+  will-change: transform, opacity;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  text-align: center;
+}
+
+/* Active digit (near current value) - larger and bright green */
+.digit.active {
+  color: #12d10c;
+  font-size: 15px;
+  text-shadow: 0 0 10px rgba(255, 203, 5, 0.6);
+  z-index: 21;
+}
+
+/* ==========================================================================
+   CROSSHAIR - Center reticle that rotates with spacecraft roll
+   ========================================================================== */
+.crosshair {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  pointer-events: none;
+  z-index: 50;
+}
+
+.crosshair-line {
+  position: absolute;
+  border: 1px solid #ff0000;
+  opacity: 1;
+  filter: drop-shadow(0 0 4px rgba(55, 0, 255, 0.4));
+  transition: opacity 0.4s ease, filter 0.4s ease;
+  box-sizing: border-box;
+}
+
+/* Horizontal lines */
+.crosshair-line.h {
+  width: 18px;
+  height: 2px;
+  top: -1px;
+}
+
+.crosshair-line.h.left {
+  right: 10px;
+}
+
+.crosshair-line.h.right {
+  left: 10px;
+}
+
+/* Vertical lines */
+.crosshair-line.v {
+  width: 2px;
+  height: 18px;
+  left: -1px;
+}
+
+.crosshair-line.v.top {
+  bottom: 10px;
+}
+
+.crosshair-line.v.bottom {
+  top: 10px;
+}
+
+/* Center dot */
+.crosshair-circle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  transform: translate(-50%, -50%);
+  background: #ff2a2a;
+  border: 1px solid #240101;
+  border-radius: 50%;
+  opacity: 1;
+  filter: drop-shadow(0 0 2px rgba(255, 42, 42, 0.4));
+}
+
+/* Glow state - enhanced shadow effect */
+.crosshair.glow .crosshair-line,
+.crosshair.glow .crosshair-circle {
+  filter: drop-shadow(0 0 10px rgb(94, 7, 255));
+}
+
+/* ==========================================================================
+   RESPONSIVE - Adjust gauge positioning on smaller screens
+   ========================================================================== */
+@media (max-width: 1200px) {
+  .side-gauge.left {
+    left: -40px;
+  }
+  .side-gauge.right {
+    right: -40px;
+  }
+}
+/* ==========================================================================
+   ARC GAUGES - Attitude indicators (Pitch/Roll/Yaw)
+   ========================================================================== */
+.arc-gauge {
+  position: absolute;
+  width: 300px;
+  height: 299.5px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* PITCH - Top center, above the navball */
+.arc-gauge.top {
+  top: 17.5%;
+  left: 25%;
+  transform: translate(-50%, -50%) ;
+z-index: 0;
+}
+
+/* ROLL - Bottom left, below and left of navball */
+.arc-gauge.bottomLeft {
+  top: 35%;
+  left: 25%;
+
+}
+
+/* YAW - Bottom right, below and right of navball */
+.arc-gauge.bottomRight {
+  top: 35%;
+  left: 25%;
+
+}
+
+.arc-gauge svg {
+  overflow: visible;
+}
