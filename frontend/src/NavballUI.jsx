@@ -187,13 +187,15 @@ export function NavballSideGauge({
 
 
 export function TelemetryGauges({ velocity = 0, acceleration = 0 }) {
-  const velMax = Math.max(100, Math.ceil(Math.abs(velocity) * 1.5 / 100) * 100 || 500);
-  const accMax = Math.max(100, Math.ceil(Math.abs(acceleration) * 1.5 / 10) * 10 || 100);
+  const vel = Math.abs(Number(velocity) || 0);
+  const acc = Math.abs(Number(acceleration) || 0);
+  const velMax = Math.max(100, Math.ceil(vel * 1.5 / 100) * 100 || 500);
+  const accMax = Math.max(100, Math.ceil(acc * 1.5 / 10) * 10 || 100);
 
   return (
     <>
-      <NavballSideGauge side="left" label="VELOCITY" value={Math.abs(velocity)} maxValue={velMax} />
-      <NavballSideGauge side="right" label="ACCELERATION" value={Math.abs(acceleration)} maxValue={accMax} />
+      <NavballSideGauge side="left" label="VELOCITY" value={vel} maxValue={velMax} />
+      <NavballSideGauge side="right" label="ACCELERATION" value={acc} maxValue={accMax} />
     </>
   );
 }

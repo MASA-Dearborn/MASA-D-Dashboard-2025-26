@@ -1,28 +1,12 @@
 {
-  "name": "rocket-dashboard",
+  "name": "masa-dashboard",
   "version": "1.0.0",
-  "dependencies": {
-    "@react-three/drei": "^9.122.0",
-    "@react-three/fiber": "^8.18.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1",
-    "three": "^0.170.0"
-  },
+  "private": true,
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build"
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+    "start": "npm start --prefix frontend",
+    "dev": "npm run dev --prefix frontend",
+    "build": "npm run build --prefix frontend",
+    "server": "npm run server --prefix frontend",
+    "install:frontend": "npm install --prefix frontend"
   }
 }

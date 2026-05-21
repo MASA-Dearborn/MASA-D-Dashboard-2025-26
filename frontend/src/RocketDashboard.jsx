@@ -4,6 +4,8 @@ import { Bounds, useAnimations, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import './RocketDashboard.css';
 import NavballAssembly from './NavballAssembly';
+import MetricChartModal from './MetricChartModal';
+import useTelemetryHistory from './useTelemetryHistory';
 
 const PLACEHOLDER = {
   missionTime: -992,
@@ -20,7 +22,7 @@ const PLACEHOLDER = {
 };
 
 const LOGO_SRC = '/logo.png';
-const SPACE_BG_SRC = '/space.png';
+const SPACE_BG_SRC = '/space-bg.jpg';
 const ROCKET_IMAGE_SRC = '/rocket.png';
 const ROCKET_MODEL_SRC = '/rocket-model/Untitled.glf.gltf';
 
@@ -63,6 +65,24 @@ function getPacketRate(packetDropped) {
   return `${Math.max(6, 13 - packetDropped)} pkts/s`;
 }
 
+const FLIGHT_PHASE_METER = {
+  READY: 8,
+  ARMED: 12,
+  BOOST: 35,
+  ASCENT: 55,
+  COAST: 70,
+  DESCENT: 85,
+  RECOVERY: 95,
+};
+
+function getFlightProgress(telemetry) {
+  const alt = telemetry?.alt;
+  if (alt != null) return clamp(alt / 3500, 0, 1);
+  const time = telemetry?.missionTime;
+  if (time != null && time >= 0) return clamp(time / 30, 0, 1);
+  return 0;
+}
+
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
@@ -90,17 +110,37 @@ function getRocketAttitude(telemetry, signalStrength) {
   };
 }
 
-function TopMetricCard({ label, value, unit, emphasis = false, icon }) {
+function TopMetricCard({
+  label,
+  value,
+  unit,
+  emphasis = false,
+  icon,
+  meter = 0,
+  onClick,
+  isActive = false,
+}) {
   return (
-    <article className={`top-metric-card ${emphasis ? 'top-metric-card-emphasis' : ''}`}>
+    <button
+      type="button"
+      className={`top-metric-card top-metric-card-btn ${emphasis ? 'top-metric-card-emphasis' : ''} ${isActive ? 'top-metric-card-active' : ''}`}
+      onClick={onClick}
+      aria-label={`${label}: ${value}. Click for history graph.`}
+    >
       <div className="top-metric-label">{label}</div>
       <div className="top-metric-value">
         <span>{value}</span>
         {unit ? <small>{unit}</small> : null}
         {icon || null}
       </div>
-      <div className="top-metric-line" />
-    </article>
+      <div className="top-metric-line">
+        <div
+          className="top-metric-line-fill"
+          style={{ width: `${clamp(meter, 0, 100)}%` }}
+        />
+      </div>
+      <span className="top-metric-hint">Graph</span>
+    </button>
   );
 }
 
@@ -158,7 +198,7 @@ function SideStatCard({ label, value, unit, meter = 72, alert = false, icon }) {
   );
 }
 
-function StatusPanel({ missionTime, signalStrength, packetRate }) {
+function StatusPanel({ missionTime, signalStrength, packetRate, connected }) {
   const [utcClock, setUtcClock] = useState('--:--:--');
 
   useEffect(() => {
@@ -176,8 +216,8 @@ function StatusPanel({ missionTime, signalStrength, packetRate }) {
   return (
     <div className="status-panel">
       <div className="status-row">
-        <span className="status-dot" />
-        <span className="status-text">CONNECTED</span>
+        <span className={`status-dot ${connected ? '' : 'status-dot-offline'}`} />
+        <span className="status-text">{connected ? 'CONNECTED' : 'WAITING'}</span>
         <span className="status-sep">{'>'}</span>
         <span className="status-text">{packetRate}</span>
       </div>
@@ -193,14 +233,24 @@ function StatusPanel({ missionTime, signalStrength, packetRate }) {
   );
 }
 
-function LeftTelemetryPanel({ telemetry }) {
+function LeftTelemetryPanel({ telemetry, flightProgress }) {
+  const progress = clamp(flightProgress ?? 0, 0, 1);
+  const endRight = 23 - progress * 14;
+  const endTop = 26 + progress * 30;
+
   return (
     <section className="left-panel">
       <div className="map-window">
         <div className="map-window-image" />
-        <div className="map-path" />
+        <div
+          className="map-path"
+          style={{ transform: `scaleX(${0.15 + progress * 0.85})` }}
+        />
         <span className="map-point map-point-start" />
-        <span className="map-point map-point-end" />
+        <span
+          className="map-point map-point-end"
+          style={{ right: `${endRight}%`, top: `${endTop}%` }}
+        />
       </div>
 
       <div className="left-panel-stats">
@@ -359,10 +409,10 @@ function FlightStage({ telemetry, flightPhase, signalStrength }) {
 
       <div className="navball-wrap">
         <NavballAssembly
-          acceleration={telemetry.acceleration}
-          magneticHeading={telemetry.magneticHeading}
-          roll={telemetry.roll}
-          velocity={telemetry.velocity}
+          acceleration={Number(telemetry.acceleration) || 0}
+          magneticHeading={Number(telemetry.magneticHeading) || 0}
+          roll={Number(telemetry.roll) || 0}
+          velocity={Number(telemetry.velocity) || 0}
         />
       </div>
 
@@ -371,19 +421,75 @@ function FlightStage({ telemetry, flightPhase, signalStrength }) {
   );
 }
 
-const RocketDashboard = ({ telemetry: telemetryProp }) => {
-  const telemetry = { ...PLACEHOLDER, ...telemetryProp };
+const RocketDashboard = ({ telemetry: telemetryProp, connected = false, hasLiveData = false }) => {
+  const [openMetric, setOpenMetric] = useState(null);
+  const usePlaceholder = !hasLiveData;
+  const telemetry = usePlaceholder
+    ? { ...PLACEHOLDER, ...(telemetryProp || {}) }
+    : { ...telemetryProp };
   const signalStrength = getSignalStrength(telemetry.packetDropped);
   const packetRate = getPacketRate(telemetry.packetDropped);
   const flightPhase = getFlightPhase(telemetry);
+  const flightProgress = getFlightProgress(telemetry);
+  const recordHistory = hasLiveData || connected;
+  const { history } = useTelemetryHistory(
+    telemetry,
+    signalStrength,
+    flightPhase,
+    recordHistory
+  );
 
   const topCards = [
-    { label: 'ALT', value: formatNumber(telemetry.alt), unit: 'm' },
-    { label: 'VEL', value: formatNumber(telemetry.velocity), unit: 'm/s' },
-    { label: 'VOLT', value: formatNumber(telemetry.vol, 2), unit: 'V' },
-    { label: 'BAR', value: formatNumber(telemetry.bar, 1), unit: 'hPa' },
-    { label: 'RSSI', value: formatNumber(signalStrength), unit: '%', icon: ICONS.rssi },
-    { label: 'FLIGHT PHASE', value: flightPhase, emphasis: true },
+    {
+      id: 'ALT',
+      label: 'ALT',
+      value: formatNumber(telemetry.alt),
+      unit: 'm',
+      meter: clamp(((telemetry.alt ?? 0) / 3500) * 100, 0, 100),
+    },
+    {
+      id: 'ACCEL',
+      label: 'ACCEL',
+      value: formatNumber(telemetry.acceleration, 1),
+      unit: 'm/s²',
+      meter: clamp((Math.abs(telemetry.acceleration ?? 0) / 80) * 100, 0, 100),
+    },
+    {
+      id: 'VEL',
+      label: 'VEL',
+      value: formatNumber(telemetry.velocity),
+      unit: 'm/s',
+      meter: clamp((Math.abs(telemetry.velocity ?? 0) / 360) * 100, 0, 100),
+    },
+    {
+      id: 'VOLT',
+      label: 'VOLT',
+      value: formatNumber(telemetry.vol, 2),
+      unit: 'V',
+      meter: clamp((((telemetry.vol ?? 11.8) - 10.8) / 1.8) * 100, 0, 100),
+    },
+    {
+      id: 'BAR',
+      label: 'BAR',
+      value: formatNumber(telemetry.bar, 1),
+      unit: 'hPa',
+      meter: clamp((((telemetry.bar ?? 1013) - 700) / 350) * 100, 0, 100),
+    },
+    {
+      id: 'RSSI',
+      label: 'RSSI',
+      value: formatNumber(signalStrength),
+      unit: '%',
+      icon: ICONS.rssi,
+      meter: signalStrength,
+    },
+    {
+      id: 'FLIGHT PHASE',
+      label: 'FLIGHT PHASE',
+      value: flightPhase,
+      emphasis: true,
+      meter: FLIGHT_PHASE_METER[flightPhase] ?? flightProgress * 100,
+    },
   ];
 
   return (
@@ -404,18 +510,32 @@ const RocketDashboard = ({ telemetry: telemetryProp }) => {
             missionTime={telemetry.missionTime}
             signalStrength={signalStrength}
             packetRate={packetRate}
+            connected={connected}
           />
         </header>
 
         <section className="top-metrics-row">
           {topCards.map((card) => (
-            <TopMetricCard key={card.label} {...card} />
+            <TopMetricCard
+              key={card.id}
+              {...card}
+              isActive={openMetric === card.id}
+              onClick={() => setOpenMetric((m) => (m === card.id ? null : card.id))}
+            />
           ))}
         </section>
 
+        {openMetric ? (
+          <MetricChartModal
+            metricId={openMetric}
+            history={history}
+            onClose={() => setOpenMetric(null)}
+          />
+        ) : null}
+
         <section className="dashboard-main">
           <aside className="dashboard-left">
-            <LeftTelemetryPanel telemetry={telemetry} />
+            <LeftTelemetryPanel telemetry={telemetry} flightProgress={flightProgress} />
           </aside>
 
           <section className="dashboard-center">

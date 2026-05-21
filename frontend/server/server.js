@@ -1,4 +1,3 @@
-// frontend/server/server.js
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -8,78 +7,75 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: 'http://localhost:3000',
-    methods: ['GET', 'POST']
-  }
+    origin: process.env.REACT_APP_ORIGIN || 'http://localhost:3000',
+    methods: ['GET', 'POST'],
+  },
 });
 
-const PORT = 4000;
-const BACKEND_URL = 'http://localhost:5000';
+const PORT = process.env.TELEMETRY_SERVER_PORT || 4000;
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
 
-// ======================
-// TELEMETRY VALIDATION
-// ======================
-function isValidTelemetry(p) {
-  return (
-    p &&
-    typeof p === 'object' &&
-    typeof p.cycles === 'number' &&
-    typeof p.timestamp_ms === 'number' &&
-    typeof p.altitude_est === 'number' &&
-    typeof p.vel_est === 'number' &&
-    typeof p.acceleration === 'number'
-  );
+function normalizePacket(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const packet = {
+    ...raw,
+    cycles: Number(raw.cycles),
+    timestamp_ms: Number(raw.timestamp_ms),
+    altitude_est: Number(raw.altitude_est),
+    vel_est: Number(raw.vel_est),
+    acceleration: Number(raw.acceleration),
+    magnetic_heading: Number(raw.magnetic_heading),
+    barometric_pressure: Number(raw.barometric_pressure),
+    voltage: Number(raw.voltage),
+    gyro_x: Number(raw.gyro_x),
+    gyro_y: Number(raw.gyro_y),
+    gyro_z: Number(raw.gyro_z),
+  };
+  if (
+    !Number.isFinite(packet.cycles) ||
+    !Number.isFinite(packet.timestamp_ms) ||
+    !Number.isFinite(packet.altitude_est) ||
+    !Number.isFinite(packet.vel_est) ||
+    !Number.isFinite(packet.acceleration)
+  ) {
+    return null;
+  }
+  return packet;
 }
 
-// ======================
-// PACKET TRACKING
-// ======================
 let lastCycle = null;
 let droppedPackets = 0;
 
 io.on('connection', (socket) => {
   console.log('[SERVER] Client connected');
-
-  socket.on('disconnect', () => {
-    console.log('[SERVER] Client disconnected');
-  });
+  socket.on('disconnect', () => console.log('[SERVER] Client disconnected'));
 });
 
-// ======================
-// POLL BACKEND @ 10 Hz
-// ======================
 setInterval(async () => {
   try {
     const response = await axios.get(`${BACKEND_URL}/get_packet`);
-    const packet = response.data;
+    const packet = normalizePacket(response.data);
+    if (!packet) return;
 
-    // Validate telemetry
-    if (!isValidTelemetry(packet)) {
-      console.warn('[SERVER] Invalid telemetry packet dropped');
-      return;
-    }
-
-    // Detect dropped packets
-    if (lastCycle !== null && packet.cycles !== lastCycle + 1) {
-      const missed = packet.cycles - lastCycle - 1;
-      if (missed > 0) {
-        droppedPackets += missed;
-        console.warn(`[SERVER] ⚠️ Dropped ${missed} packet(s)`);
+    if (lastCycle !== null) {
+      const gap = packet.cycles - lastCycle;
+      if (gap > 50) {
+        // Backend/Arduino restarted — reset counter instead of flooding drops
+        lastCycle = null;
+        droppedPackets = 0;
+      } else if (gap > 1) {
+        droppedPackets += gap - 1;
       }
     }
 
     lastCycle = packet.cycles;
 
-    // Emit enriched telemetry
     io.emit('telemetry', {
       ...packet,
-      droppedPackets
+      droppedPackets,
     });
-
-    console.log(`[SERVER] Packet ${packet.cycles} → clients`);
-
-  } catch (error) {
-    // Backend offline / RF silence
+  } catch {
+    // Backend offline
   }
 }, 100);
 
@@ -88,5 +84,5 @@ server.listen(PORT, () => {
   console.log('TELEMETRY WEBSOCKET SERVER');
   console.log('================================');
   console.log(`Server: http://localhost:${PORT}`);
-  console.log('Waiting for React app on :3000');
+  console.log(`Backend: ${BACKEND_URL}`);
 });

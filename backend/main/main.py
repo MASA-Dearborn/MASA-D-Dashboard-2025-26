@@ -15,7 +15,7 @@ from data_processor.buffer import (
 )
 from database.db import init_database, direct_to_sql, get_stats
 
-SERIAL_PORT = "COM5"
+SERIAL_PORT = "COM3"
 BAUD_RATE = 9600  # Match Arduino Serial.begin(9600)
 
 
@@ -50,7 +50,7 @@ def process_packet(json_packet):
     try:
         data = json.loads(json_packet)
         _normalize_packet(data)
-        buffer_thread = threading.Thread(target=buffer_to_frontend, args=(data,))
+        buffer_thread = threading.Thread(target=buffer_to_frontend, args=(json_packet,))
         buffer_thread.start()
         sql_thread = threading.Thread(target=direct_to_sql, args=(data,))
         sql_thread.start()

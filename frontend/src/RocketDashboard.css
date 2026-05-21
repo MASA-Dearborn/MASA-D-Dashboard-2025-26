@@ -139,6 +139,11 @@ body {
   box-shadow: 0 0 14px rgba(123, 243, 142, 0.65);
 }
 
+.status-dot-offline {
+  background: #f59e0b;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.45);
+}
+
 .status-text {
   color: var(--text);
 }
@@ -149,7 +154,7 @@ body {
 
 .top-metrics-row {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -158,6 +163,165 @@ body {
   padding: 10px 12px 10px;
   border-radius: 10px;
   position: relative;
+}
+
+.top-metric-card-btn {
+  width: 100%;
+  border: 1px solid rgba(121, 162, 214, 0.22);
+  background: var(--panel);
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.top-metric-card-btn:hover {
+  border-color: rgba(255, 210, 76, 0.45);
+  box-shadow: 0 0 16px rgba(255, 210, 76, 0.12);
+}
+
+.top-metric-card-btn:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.top-metric-card-active {
+  border-color: var(--gold);
+  box-shadow: 0 0 20px rgba(255, 210, 76, 0.2);
+}
+
+.top-metric-hint {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 0.5rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(156, 178, 207, 0.55);
+  font-family: 'Orbitron', sans-serif;
+}
+
+.metric-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(2, 8, 22, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.metric-modal {
+  width: min(720px, 100%);
+  max-height: min(88vh, 640px);
+  overflow: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(121, 162, 214, 0.3);
+  background: linear-gradient(165deg, rgba(8, 22, 42, 0.98), rgba(5, 16, 31, 0.98));
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+  padding: 20px 22px 18px;
+}
+
+.metric-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.metric-modal-kicker {
+  display: block;
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-family: 'Orbitron', sans-serif;
+}
+
+.metric-modal-header h2 {
+  margin: 4px 0 0;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.35rem;
+  color: var(--gold);
+}
+
+.metric-modal-close {
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.metric-modal-close:hover {
+  background: rgba(255, 210, 76, 0.15);
+  color: var(--gold);
+}
+
+.metric-modal-desc {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.metric-modal-current {
+  margin-top: 14px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.metric-modal-current span:first-child {
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.metric-modal-current strong {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.5rem;
+  color: #fff7d0;
+}
+
+.metric-modal-points {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.metric-modal-chart {
+  margin-top: 16px;
+  height: 280px;
+  border-radius: 10px;
+  border: 1px solid rgba(121, 162, 214, 0.15);
+  background: rgba(0, 9, 21, 0.5);
+  padding: 12px;
+}
+
+.metric-modal-empty {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  text-align: center;
+  padding: 24px;
+}
+
+.metric-modal-axis-label {
+  margin: 10px 0 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-align: center;
 }
 
 .top-metric-card-emphasis .top-metric-value {
@@ -205,17 +369,12 @@ body {
   overflow: hidden;
 }
 
-.top-metric-line::after,
+.top-metric-line-fill,
 .side-stat-meter-fill {
-  content: '';
-  display: block;
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, rgba(255, 210, 76, 0.2), var(--gold), rgba(255, 210, 76, 0.6));
-}
-
-.top-metric-line::after {
-  width: 80%;
+  transition: width 0.15s ease-out;
 }
 
 .top-metric-card::after {
@@ -286,6 +445,8 @@ body {
   border-top: 2px solid var(--gold);
   border-right: 2px solid var(--gold);
   border-radius: 0 100% 0 0;
+  transform-origin: left center;
+  transition: transform 0.2s ease-out;
 }
 
 .map-point {
@@ -294,6 +455,7 @@ body {
   height: 10px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.86);
+  transition: right 0.2s ease-out, top 0.2s ease-out;
 }
 
 .map-point-start {

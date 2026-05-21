@@ -84,6 +84,10 @@ class TelemetryBuffer:
         """Stop automatic dumping"""
         self.running = False
 
+    def flush_for_shutdown(self):
+        """Final dump before exit."""
+        self.dump_buffer()
+
 # Global buffer instance
 telemetry_buffer = TelemetryBuffer()
 

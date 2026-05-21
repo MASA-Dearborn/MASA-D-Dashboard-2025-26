@@ -56,12 +56,15 @@ export default function NavballAssembly({
   velocity = 0,
 }) {
   const [navRotation, setNavRotation] = useState({ x: 0, y: 0, z: 0 });
-  const pitch = Math.max(-90, Math.min(90, (90 * (acceleration + 10)) / 70));
+  const vel = Number(velocity) || 0;
+  const accel = Number(acceleration) || 0;
+  const heading = Number(magneticHeading) || 0;
+  const pitch = Math.max(-90, Math.min(90, accel * 0.9));
 
   return (
     <div className="nb-assembly">
       <div className="nb-gauge-ring">
-        <TelemetryGauges velocity={velocity} acceleration={acceleration} />
+        <TelemetryGauges velocity={vel} acceleration={accel} />
       </div>
 
       <div className="nb-glow-container">
@@ -84,8 +87,8 @@ export default function NavballAssembly({
               <NavBall3D
                 onRotationChange={setNavRotation}
                 pitch={pitch}
-                yaw={magneticHeading}
-                roll={roll}
+                yaw={heading}
+                roll={Number(roll) || 0}
               />
             </Suspense>
           </Canvas>
