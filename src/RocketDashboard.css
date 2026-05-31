@@ -1,15 +1,20 @@
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700&family=Rajdhani:wght@500;600;700&display=swap');
 
+/* ===========================================================================
+   Layout shell + center flight stage. Reusable building blocks (cards, charts,
+   modals, side panels) live in components/components.css.
+   =========================================================================== */
+
 :root {
   --bg: #020816;
-  --panel: rgba(5, 16, 31, 0.9);
-  --panel-soft: rgba(5, 16, 31, 0.82);
-  --line: rgba(121, 162, 214, 0.26);
+  --line: rgba(121, 162, 214, 0.2);
   --text: #eef5ff;
   --muted: #9cb2cf;
-  --gold: #ffd24c;
-  --gold-deep: #f3b415;
-  --green: #7bf38e;
+  --gold: #f4c430;
+  --green: #5bd66d;
+  --blue: #3aa0ff;
+  --cyan: #48d6ff;
+  --red: #ff6b6b;
 }
 
 body {
@@ -23,9 +28,7 @@ body {
 
 #root,
 .App,
-.dashboard-container {
-  min-height: 100vh;
-}
+.dashboard-container { min-height: 100vh; }
 
 .dashboard-container {
   position: relative;
@@ -34,414 +37,147 @@ body {
 }
 
 .dashboard-backdrop,
-.dashboard-overlay {
-  position: absolute;
-  inset: 0;
-}
+.dashboard-overlay { position: absolute; inset: 0; }
 
 .dashboard-backdrop {
   background-position: center bottom;
   background-size: cover;
-  filter: brightness(0.86) saturate(1.05);
-  transform: scale(1.01);
+  filter: brightness(0.82) saturate(1.05);
+  transform: scale(1.02);
 }
 
 .dashboard-overlay {
-  background:
-    linear-gradient(180deg, rgba(1, 4, 10, 0.15) 0%, transparent 30%, transparent 70%, rgba(1, 4, 10, 0.18) 100%);
+  background: linear-gradient(180deg, rgba(1, 4, 10, 0.4) 0%, rgba(1, 4, 10, 0.05) 26%, transparent 60%, rgba(1, 4, 10, 0.22) 100%);
 }
 
+/* --- Top-level grid ------------------------------------------------------- */
 .dashboard-shell {
   position: relative;
   z-index: 1;
   height: 100vh;
   box-sizing: border-box;
-  padding: 8px 24px 12px;
+  padding: 10px 18px 12px;
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr) 158px auto;
   gap: 10px;
 }
 
-.dashboard-header {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  min-height: 60px;
-}
-
-.dashboard-header-spacer {
-  display: none;
-}
-
-.brand-lockup {
-  text-align: center;
-}
-
-.dashboard-logo {
-  width: clamp(200px, 20vw, 340px);
-  height: auto;
-  display: block;
-  object-fit: contain;
-}
-
-.brand-lockup p {
-  margin: 2px 0 0;
-  font-family: 'Orbitron', sans-serif;
-  font-size: 0.7rem;
-  letter-spacing: 0.3em;
-  color: #d6e3f5;
-}
-
-.top-metric-card,
-.left-panel,
-.side-stat-card {
-  background: linear-gradient(180deg, rgba(7, 18, 35, 0.72), rgba(4, 12, 25, 0.6));
-  border: 1px solid rgba(121, 162, 214, 0.18);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(8px);
-}
-
-.status-panel {
-  position: absolute;
-  top: 0;
-  right: 0;
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  padding: 4px 0;
-}
-
-.status-row {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  font-family: 'Orbitron', sans-serif;
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
-}
-
-.status-row + .status-row {
-  margin-top: 4px;
-}
-
-.status-row-secondary {
-  color: var(--muted);
-  justify-content: space-between;
-}
-
-.status-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 14px rgba(123, 243, 142, 0.65);
-}
-
-.status-text {
-  color: var(--text);
-}
-
-.status-sep {
-  color: var(--gold);
-}
-
-.top-metrics-row {
+.top-cards {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
-}
-
-.top-metric-card {
-  min-height: 60px;
-  padding: 10px 12px 10px;
-  border-radius: 10px;
-  position: relative;
-}
-
-.top-metric-card-emphasis .top-metric-value {
-  color: var(--gold);
-}
-
-.top-metric-label,
-.side-stat-label {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 0.62rem;
-  letter-spacing: 0.1em;
-  color: var(--text);
-}
-
-.top-metric-value,
-.side-stat-value {
-  margin-top: 6px;
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-  font-family: 'Orbitron', sans-serif;
-  color: #fff7d0;
-}
-
-.top-metric-value span {
-  font-size: clamp(1.4rem, 1.6vw, 1.8rem);
-  line-height: 1;
-}
-
-.top-metric-value small,
-.side-stat-value small {
-  font-size: 0.8rem;
-  color: var(--gold);
-}
-
-.top-metric-line,
-.side-stat-meter {
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 8px;
-  height: 3px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  overflow: hidden;
-}
-
-.top-metric-line::after,
-.side-stat-meter-fill {
-  content: '';
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, rgba(255, 210, 76, 0.2), var(--gold), rgba(255, 210, 76, 0.6));
-}
-
-.top-metric-line::after {
-  width: 80%;
-}
-
-.top-metric-card::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(255, 210, 76, 0.45), rgba(255, 210, 76, 0.7), rgba(255, 210, 76, 0.45), transparent);
-  border-radius: 0 0 12px 12px;
 }
 
 .dashboard-main {
   min-height: 0;
   display: grid;
-  grid-template-columns: 205px minmax(0, 1fr) 168px;
-  gap: 18px;
+  grid-template-columns: 210px minmax(0, 1fr) 216px;
+  gap: 14px;
 }
 
-.dashboard-left {
+.dashboard-col {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-}
-
-.dashboard-right {
-  min-height: 0;
-}
-
-.left-panel {
-  border-radius: 10px;
-  padding: 10px;
-  box-sizing: border-box;
-  display: grid;
-  grid-template-rows: 138px auto;
   gap: 10px;
 }
 
-.map-window {
-  position: relative;
-  min-height: 0;
-  border-radius: 14px;
-  overflow: hidden;
-  border: 1px solid rgba(145, 176, 219, 0.16);
-  background:
-    linear-gradient(180deg, rgba(82, 92, 90, 0.28), rgba(33, 43, 49, 0.5)),
-    linear-gradient(135deg, rgba(72, 89, 73, 0.8), rgba(86, 96, 98, 0.3), rgba(46, 61, 71, 0.92));
-}
+.dashboard-left .system-panel { flex: 0 0 auto; }
+.dashboard-right .panel { flex: 0 0 auto; }
+.dashboard-right .gforce-panel { flex: 1 1 auto; justify-content: center; }
 
-.map-window-image {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(135deg, rgba(97, 109, 83, 0.55), rgba(71, 86, 71, 0.18) 40%, rgba(92, 102, 111, 0.42)),
-    linear-gradient(0deg, transparent 48%, rgba(228, 231, 226, 0.3) 49%, transparent 50%),
-    linear-gradient(90deg, transparent 45%, rgba(228, 231, 226, 0.18) 46%, transparent 47%);
-  opacity: 0.9;
-}
+.dashboard-center { position: relative; min-height: 0; }
 
-.map-path {
-  position: absolute;
-  left: 18%;
-  right: 24%;
-  top: 60%;
-  height: 38%;
-  border-top: 2px solid var(--gold);
-  border-right: 2px solid var(--gold);
-  border-radius: 0 100% 0 0;
-}
-
-.map-point {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.86);
-}
-
-.map-point-start {
-  left: 17%;
-  top: 57%;
-}
-
-.map-point-end {
-  right: 23%;
-  top: 26%;
-}
-
-.left-panel-stats {
-  display: grid;
-  gap: 6px;
-}
-
-.left-panel-stat {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 2px;
-}
-
-.left-panel-stat span {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 0.62rem;
-  letter-spacing: 0.1em;
-  color: #9cb2cf;
-}
-
-.left-panel-stat strong {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 0.78rem;
-  color: #eef5ff;
-  font-weight: 600;
-}
-
-.dashboard-center {
-  min-height: 0;
-}
-
-.flight-stage-panel {
+/* --- Flight stage --------------------------------------------------------- */
+.flight-stage {
   position: relative;
   height: 100%;
   min-height: 0;
   overflow: visible;
-  background: transparent;
-  border: none;
-  box-shadow: none;
 }
 
-.flight-stage-panel::before {
+.flight-stage::before {
   content: '';
   position: absolute;
   left: 50%;
-  bottom: -24%;
-  width: 120%;
-  height: 42%;
+  bottom: -18%;
+  width: 130%;
+  height: 46%;
   transform: translateX(-50%);
-  background: radial-gradient(circle at center, rgba(71, 132, 211, 0.15), transparent 55%);
+  background: radial-gradient(circle at center, rgba(71, 132, 211, 0.16), transparent 58%);
+  pointer-events: none;
 }
 
 .flight-arc {
   position: absolute;
   border-radius: 50%;
-  border: 1.5px solid rgba(255, 210, 76, 0.25);
-  box-shadow: 0 0 12px rgba(255, 210, 76, 0.08);
+  border: 1.5px solid rgba(255, 210, 76, 0.22);
+  pointer-events: none;
 }
 
-.flight-arc-one {
-  width: 50%;
-  height: 22%;
-  top: 16%;
-  left: 26%;
-  transform: rotate(-14deg);
-  border-color: rgba(255, 210, 76, 0.30);
+.flight-arc-one { width: 56%; height: 30%; top: 14%; left: 24%; transform: rotate(-16deg); border-color: rgba(244, 196, 48, 0.28); }
+.flight-arc-two { width: 60%; height: 22%; top: 30%; left: 18%; transform: rotate(10deg); border-color: rgba(100, 170, 240, 0.2); }
+
+.stage-annotation {
+  position: absolute;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-family: 'Orbitron', sans-serif;
+  text-shadow: 0 0 10px rgba(120, 170, 240, 0.5);
+  pointer-events: none;
 }
 
-.flight-arc-two {
-  width: 54%;
-  height: 16%;
-  top: 34%;
-  left: 20%;
-  transform: rotate(8deg);
-  border-color: rgba(100, 170, 240, 0.22);
-}
+.annotation-label { font-size: 0.56rem; letter-spacing: 0.16em; color: #b7cdec; }
+.annotation-value { font-size: 0.92rem; color: #eaf2ff; }
 
-.flight-stage-annotation,
+.annotation-heading { top: 6%; left: 50%; transform: translateX(-50%); align-items: center; }
+.annotation-heading .annotation-value { color: var(--gold); }
+.annotation-roll { top: 40%; right: 6%; align-items: flex-end; }
+.annotation-roll .annotation-value { color: var(--cyan); }
+.annotation-pitch { bottom: 30%; left: 8%; }
+.annotation-pitch .annotation-value { color: var(--gold); }
+
 .flight-phase-badge {
   position: absolute;
-  z-index: 2;
+  z-index: 4;
+  top: 10%;
+  right: 8%;
   font-family: 'Orbitron', sans-serif;
-  font-size: 0.66rem;
-  letter-spacing: 0.16em;
-  color: #c8d9f0;
-  text-shadow: 0 0 8px rgba(120, 170, 240, 0.4);
+  font-size: 1rem;
+  letter-spacing: 0.14em;
+  color: var(--gold);
+  text-shadow: 0 0 12px rgba(244, 196, 48, 0.4);
+  opacity: 0.85;
 }
 
-.flight-stage-annotation-top {
-  top: 22%;
-  right: 15%;
-}
-
-.flight-stage-annotation-bottom {
-  top: 38%;
-  left: 9%;
-}
-
-.rocket-stage {
-  position: absolute;
-  inset: 0;
-}
+.rocket-stage { position: absolute; inset: 0; }
 
 .rocket-plume {
   position: absolute;
-  left: 19%;
-  top: 34%;
+  left: 27%;
+  top: 52%;
   width: 240px;
-  height: 34px;
-  transform: rotate(154deg);
-  background:
-    radial-gradient(ellipse at 15% 50%, rgba(255, 230, 100, 0.88), rgba(255, 180, 40, 0.58) 22%, rgba(89, 177, 255, 0.22) 52%, transparent 78%);
+  height: 36px;
+  transform: rotate(150deg);
+  transform-origin: right center;
+  background: radial-gradient(ellipse at 85% 50%, rgba(255, 230, 100, 0.85), rgba(255, 180, 40, 0.5) 24%, rgba(89, 177, 255, 0.18) 55%, transparent 80%);
   filter: blur(7px);
-  opacity: 0.86;
-}
-
-.rocket-plume::after {
-  content: '';
-  position: absolute;
-  left: -30%;
-  top: 20%;
-  width: 60%;
-  height: 60%;
-  background: radial-gradient(circle, rgba(255, 255, 200, 0.9), transparent 60%);
-  filter: blur(4px);
+  opacity: 0.82;
+  pointer-events: none;
 }
 
 .rocket-image-stage {
   position: absolute;
   left: 50%;
-  top: 31%;
+  top: 42%;
   z-index: 3;
-  width: clamp(860px, 84vw, 1280px);
-  aspect-ratio: 4.6 / 1;
-  transform: translate(-50%, -50%) rotate(18deg);
+  width: min(108%, 1040px);
+  aspect-ratio: 1.93 / 1;
+  transform: translate(-50%, -50%) rotate(150deg);
   transform-origin: 50% 50%;
-  filter: drop-shadow(0 0 18px rgba(108, 173, 255, 0.34)) drop-shadow(0 12px 22px rgba(0, 0, 0, 0.46));
+  filter: drop-shadow(0 0 18px rgba(108, 173, 255, 0.32)) drop-shadow(0 12px 22px rgba(0, 0, 0, 0.46));
 }
 
 .rocket-image {
@@ -451,21 +187,20 @@ body {
   height: 100%;
   object-fit: contain;
   display: block;
-  transform: scale(1.22);
-  transform-origin: center;
 }
 
 .rocket-module-button {
   position: absolute;
-  width: 28px;
-  height: 28px;
-  border: 1px solid rgba(255, 210, 76, 0.78);
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(244, 196, 48, 0.8);
   border-radius: 50%;
-  background: rgba(5, 16, 31, 0.54);
-  box-shadow: 0 0 14px rgba(255, 210, 76, 0.35), inset 0 0 8px rgba(255, 210, 76, 0.18);
+  background: rgba(5, 16, 31, 0.5);
+  box-shadow: 0 0 14px rgba(244, 196, 48, 0.4), inset 0 0 8px rgba(244, 196, 48, 0.2);
   transform: translate(-50%, -50%);
   cursor: pointer;
   padding: 0;
+  animation: marker-pulse 2.4s ease-in-out infinite;
 }
 
 .rocket-module-button span {
@@ -475,248 +210,50 @@ body {
   margin: auto;
   border-radius: 50%;
   background: var(--gold);
-  box-shadow: 0 0 8px rgba(255, 210, 76, 0.75);
+  box-shadow: 0 0 8px rgba(244, 196, 48, 0.8);
 }
 
 .rocket-module-button:hover,
 .rocket-module-button:focus-visible {
   outline: none;
   transform: translate(-50%, -50%) scale(1.18);
-  background: rgba(255, 210, 76, 0.18);
-}
-
-.module-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 4, 10, 0.66);
-  backdrop-filter: blur(8px);
-}
-
-.module-modal {
-  width: min(680px, 86vw);
-  height: min(520px, 76vh);
-  border: 1px solid rgba(121, 162, 214, 0.32);
-  border-radius: 8px;
-  background: linear-gradient(180deg, rgba(7, 18, 35, 0.94), rgba(3, 10, 20, 0.96));
-  box-shadow: 0 22px 80px rgba(0, 0, 0, 0.55);
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  overflow: hidden;
-}
-
-.module-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid rgba(121, 162, 214, 0.18);
-}
-
-.module-modal-header div {
-  display: grid;
-  gap: 2px;
-}
-
-.module-modal-header span {
-  font-family: 'Orbitron', sans-serif;
-  color: var(--muted);
-  font-size: 0.62rem;
-  letter-spacing: 0.14em;
-}
-
-.module-modal-header strong {
-  font-family: 'Orbitron', sans-serif;
-  color: #fff7d0;
-  font-size: 1rem;
-  letter-spacing: 0.08em;
-}
-
-.module-modal-header button {
-  width: 34px;
-  height: 34px;
-  border: 1px solid rgba(255, 210, 76, 0.42);
-  border-radius: 6px;
-  background: rgba(255, 210, 76, 0.08);
-  color: var(--gold);
-  font-family: 'Orbitron', sans-serif;
-  cursor: pointer;
-}
-
-.module-viewer {
-  position: relative;
-  min-height: 0;
-}
-
-.module-viewer canvas {
-  display: block;
-}
-
-.module-placeholder {
-  height: 100%;
-  display: grid;
-  place-items: center;
-  color: var(--muted);
-  font-family: 'Orbitron', sans-serif;
-  letter-spacing: 0.12em;
-}
-
-.flight-phase-badge {
-  top: 72px;
-  right: 32px;
-  color: var(--gold);
-  font-size: 0.92rem;
+  background: rgba(244, 196, 48, 0.18);
 }
 
 .navball-wrap {
   position: absolute;
   left: 50%;
-  bottom: -24px;
-  transform: translateX(-50%) scale(0.86);
+  bottom: -10px;
+  z-index: 5;
+  transform: translateX(-50%) scale(0.82);
   transform-origin: center bottom;
 }
 
-.dashboard-right {
-  display: grid;
-  grid-template-rows: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+@keyframes marker-pulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(244, 196, 48, 0.35), inset 0 0 8px rgba(244, 196, 48, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(244, 196, 48, 0.6), inset 0 0 10px rgba(244, 196, 48, 0.3); }
 }
 
-.side-stat-card {
-  border-radius: 10px;
-  padding: 9px 11px 10px;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.side-stat-card .side-stat-value span {
-  font-size: 1.4rem;
-  line-height: 1;
-}
-
-.side-stat-card-alert .side-stat-value span {
-  font-size: 0.9rem;
-  color: var(--gold);
-}
-
-.side-stat-icon {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 22px;
-  height: 22px;
-  color: var(--gold);
-  opacity: 0.75;
-}
-
-.side-stat-meter {
-  left: 12px;
-  right: 12px;
-  bottom: 10px;
-}
-
-.side-stat-meter-fill {
-  width: 72%;
-}
-
+/* --- Responsive ----------------------------------------------------------- */
 @media (max-width: 1400px) {
-  .dashboard-shell {
-    padding: 10px 14px 10px;
-  }
-
-  .dashboard-main {
-    grid-template-columns: 210px minmax(0, 1fr) 170px;
-  }
-
-  .top-metric-card {
-    min-height: 60px;
-  }
-
-  .top-metric-value span {
-    font-size: 1.2rem;
-  }
-
-  .rocket-image-stage {
-    width: min(88%, 980px);
-  }
+  .dashboard-shell { padding: 8px 12px 10px; gap: 8px; }
+  .dashboard-main { grid-template-columns: 190px minmax(0, 1fr) 196px; gap: 10px; }
+  .telemetry-card { min-height: 96px; }
 }
 
 @media (max-width: 1180px) {
-  body {
-    overflow: auto;
-  }
-
-  .dashboard-shell {
-    height: auto;
-    min-height: 100vh;
-  }
-
-  .dashboard-header {
-    grid-template-columns: 1fr;
-  }
-
-  .dashboard-header-spacer {
-    display: none;
-  }
-
-  .brand-lockup,
-  .status-panel {
-    justify-self: center;
-  }
-
-  .top-metrics-row {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .dashboard-main {
-    grid-template-columns: 1fr;
-  }
-
-  .left-panel {
-    height: 320px;
-  }
-
-  .flight-stage-panel {
-    min-height: 760px;
-  }
-
-  .dashboard-right {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: none;
-  }
+  body { overflow: auto; }
+  .dashboard-shell { height: auto; min-height: 100vh; }
+  .top-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .dashboard-main { grid-template-columns: 1fr; }
+  .dashboard-center { min-height: 620px; }
+  .bottom-charts { grid-template-columns: 1fr; }
+  .dash-header { grid-template-columns: 1fr; justify-items: center; gap: 8px; }
+  .dash-header-left, .dash-header-right { justify-self: center; }
+  .chart-card { min-height: 200px; }
 }
 
 @media (max-width: 720px) {
-  .top-metrics-row,
-  .dashboard-right {
-    grid-template-columns: 1fr;
-  }
-
-  .status-panel {
-    min-width: 0;
-    width: 100%;
-    box-sizing: border-box;
-  }
-
-  .brand-lockup p {
-    letter-spacing: 0.22em;
-  }
-
-  .flight-stage-panel {
-    min-height: 700px;
-  }
-
-  .rocket-image-stage {
-    width: 88%;
-    top: 33%;
-  }
-
-  .navball-wrap {
-    transform: translateX(-50%);
-  }
+  .top-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dash-footer { flex-direction: column; align-items: flex-start; }
 }

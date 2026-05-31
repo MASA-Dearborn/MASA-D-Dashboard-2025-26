@@ -170,7 +170,7 @@ export function NavballSideGauge({
     hideLastLabel,
   });
 
-  const showDigits = label === "ACCELERATION" || label === "VELOCITY";
+  const showDigits = label === "ALTITUDE" || label === "VELOCITY";
   const DIGIT_RADIUS = baseConfig.SIZE / 2 - 20;
 
   return (
@@ -186,14 +186,14 @@ export function NavballSideGauge({
 }
 
 
-export function TelemetryGauges({ velocity = 0, acceleration = 0 }) {
+export function TelemetryGauges({ velocity = 0, altitude = 0 }) {
   const velMax = Math.max(100, Math.ceil(Math.abs(velocity) * 1.5 / 100) * 100 || 500);
-  const accMax = Math.max(100, Math.ceil(Math.abs(acceleration) * 1.5 / 10) * 10 || 100);
+  const altMax = Math.max(500, Math.ceil(Math.abs(altitude) * 1.3 / 500) * 500 || 1500);
 
   return (
     <>
       <NavballSideGauge side="left" label="VELOCITY" value={Math.abs(velocity)} maxValue={velMax} />
-      <NavballSideGauge side="right" label="ACCELERATION" value={Math.abs(acceleration)} maxValue={accMax} />
+      <NavballSideGauge side="right" label="ALTITUDE" value={Math.abs(altitude)} maxValue={altMax} />
     </>
   );
 }

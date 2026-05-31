@@ -54,15 +54,20 @@ export default function NavballAssembly({
   magneticHeading = 0,
   roll = 0,
   velocity = 0,
+  altitude = 0,
 }) {
   const [navRotation, setNavRotation] = useState({ x: 0, y: 0, z: 0 });
   const pitch = Math.max(-90, Math.min(90, (90 * (acceleration + 10)) / 70));
+  const headingLabel = `${Math.round(((magneticHeading % 360) + 360) % 360)}°`;
 
   return (
     <div className="nb-assembly">
       <div className="nb-gauge-ring">
-        <TelemetryGauges velocity={velocity} acceleration={acceleration} />
+        <TelemetryGauges velocity={velocity} altitude={altitude} />
       </div>
+
+      <div className="nb-hdg-label">HDG <span>{headingLabel}</span></div>
+      <div className="nb-crs-label">CRS <span>{headingLabel}</span></div>
 
       <div className="nb-glow-container">
         <div className="nb-outer-glow" />

@@ -68,6 +68,7 @@ function buildTelemetry(elapsedSeconds) {
   const missionTime = Math.round(cycleTime);
   const altitudePressureDrop = state.alt * 0.115;
   const signalWobble = Math.sin(elapsedSeconds * 0.55);
+  const flightLoad = clamp(Math.max(0, cycleTime) / 42, 0, 1);
 
   return {
     ...PLACEHOLDER,
@@ -83,6 +84,11 @@ function buildTelemetry(elapsedSeconds) {
     magneticHeading: (45 + Math.max(0, cycleTime) * 2.4 + Math.sin(elapsedSeconds * 0.7) * 8) % 360,
     roll: Math.sin(elapsedSeconds * 1.25) * 22,
     packetDropped: Math.floor(elapsedSeconds / 17) % 4 === 0 ? 1 : 0,
+    // Optional channels — real telemetry can override via aliases, and the UI
+    // already handles these being absent.
+    avionicsTemp: 31 + flightLoad * 6 + Math.sin(elapsedSeconds * 0.4) * 0.6,
+    batteryTemp: 33 + flightLoad * 5 + Math.sin(elapsedSeconds * 0.3) * 0.5,
+    motorTemp: 27 + flightLoad * 14 + Math.sin(elapsedSeconds * 0.6) * 0.8,
   };
 }
 

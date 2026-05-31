@@ -89,6 +89,38 @@
   display: block;
 }
 
+/* Heading / course chips on the attitude ball (Image-1 style). */
+.nb-hdg-label,
+.nb-crs-label {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 5px;
+  background: rgba(2, 8, 18, 0.78);
+  border: 1px solid rgba(91, 214, 109, 0.3);
+  font-family: "Orbitron", sans-serif;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  color: #5bd66d;
+  text-shadow: 0 0 8px rgba(91, 214, 109, 0.4);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.nb-hdg-label span,
+.nb-crs-label span {
+  font-size: 0.72rem;
+  color: #eafff0;
+}
+
+.nb-hdg-label { top: 74px; }
+.nb-crs-label { top: 242px; }
+
 .nb-side-gauge {
   position: absolute;
   width: 170px;
