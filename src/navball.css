@@ -1,0 +1,450 @@
+@font-face {
+  font-family: "Digital-7";
+  src: url("./assets/digital-7.ttf") format("truetype");
+}
+
+.nb-assembly {
+  position: relative;
+  width: 340px;
+  height: 340px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.nb-gauge-ring {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.nb-glow-container {
+  position: absolute;
+  width: 178px;
+  height: 178px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.nb-outer-glow {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 2px solid rgba(255, 203, 5, 0.35);
+  border-radius: 50%;
+  box-shadow:
+    0 0 20px rgba(255, 203, 5, 0.15),
+    0 0 50px rgba(255, 203, 5, 0.06),
+    inset 0 0 20px rgba(128, 102, 2, 0.05);
+  animation: nb-pulse 5s ease-in-out infinite;
+}
+
+.nb-inner-glow {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 170px;
+  height: 170px;
+  border: 1.5px solid rgba(0, 39, 76, 0.6);
+  border-radius: 50%;
+  box-shadow:
+    0 0 16px rgba(0, 39, 76, 0.4),
+    inset 0 0 20px rgba(0, 39, 76, 0.2);
+}
+
+@keyframes nb-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.015); }
+}
+
+.nb-navball-area {
+  position: static;
+  width: 170px;
+  height: 170px;
+  z-index: 20;
+  flex: 0 0 170px;
+}
+
+.nb-navball-round {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow:
+    inset 0 0 40px rgba(0, 0, 0, 0.8),
+    0 0 0 2px rgba(255, 203, 5, 0.3),
+    0 0 0 4px rgba(0, 19, 39, 0.5),
+    0 0 20px rgba(0, 9, 21, 0.7);
+  position: relative;
+  background: #000915;
+}
+
+.nb-navball-round canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+/* Heading / course chips on the attitude ball (Image-1 style). */
+.nb-hdg-label,
+.nb-crs-label {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 5px;
+  background: rgba(2, 8, 18, 0.78);
+  border: 1px solid rgba(91, 214, 109, 0.3);
+  font-family: "Orbitron", sans-serif;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  color: #5bd66d;
+  text-shadow: 0 0 8px rgba(91, 214, 109, 0.4);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.nb-hdg-label span,
+.nb-crs-label span {
+  font-size: 0.72rem;
+  color: #eafff0;
+}
+
+.nb-hdg-label { top: 74px; }
+.nb-crs-label { top: 242px; }
+
+.nb-side-gauge {
+  position: absolute;
+  width: 170px;
+  height: 226px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.nb-side-gauge.left {
+  left: -44px;
+}
+
+.nb-side-gauge.right {
+  right: -44px;
+}
+
+.nb-ticks-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 15;
+}
+
+.nb-tick {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1px;
+  height: 10px;
+  background: rgba(138, 155, 176, 0.35);
+  transform-origin: center bottom;
+  margin-left: -0.5px;
+  margin-top: -10px;
+  opacity: 1;
+}
+
+.nb-tick.major {
+  width: 1.5px;
+  height: 14px;
+  margin-left: -0.75px;
+  margin-top: -14px;
+  background: var(--um-maize, #FFCB05);
+  box-shadow: 0 0 4px rgba(255, 203, 5, 0.4);
+  opacity: 1;
+}
+
+.nb-gauge-ring-bg {
+  position: absolute;
+  width: 170px;
+  height: 170px;
+  border: 28px solid var(--bg-dark, #000915);
+  border-radius: 50%;
+  opacity: 0.94;
+  z-index: 5;
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.4);
+}
+
+.nb-gauge-badge-left,
+.nb-gauge-badge-right {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 70px;
+  height: 70px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 20;
+}
+
+.nb-badge-arc {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 4px rgba(255, 203, 5, 0.12));
+}
+
+.nb-badge-arc-path {
+  d: path("M 10,50 a 40,40 0 1,0 80,0 a 40,40 0 1,0 -80,0");
+  fill: rgba(0, 25, 50, 0.92);
+  stroke: rgba(255, 203, 5, 0.5);
+  stroke-width: 1.5;
+}
+
+.nb-badge-curve {
+  d: path("M 80,50 a 30,30 0 1,1 -60,0 a 30,30 0 1,1 60,0");
+  transform: rotate(25deg);
+  transform-origin: 50px 50px;
+  fill: none;
+}
+
+.nb-badge-content {
+  position: relative;
+  text-align: center;
+  margin-top: 9px;
+}
+
+.nb-badge-value {
+  font-family: "Digital-7", monospace;
+  font-size: 23px;
+  color: var(--um-maize, #FFCB05);
+  text-shadow: 0 0 8px rgba(255, 203, 5, 0.5);
+  display: block;
+  line-height: 1;
+}
+
+.nb-badge-label-text {
+  font-size: 7px;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  fill: var(--text-secondary, #8a9bb0);
+}
+
+.nb-gauge-arrow-indicator {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 99;
+}
+
+.nb-gauge-arrow-indicator.left {
+  left: -13px;
+}
+
+.nb-gauge-arrow-indicator.right {
+  right: -13px;
+}
+
+.nb-arrow-svg {
+  width: 19px;
+  height: 13px;
+}
+
+.nb-arrow-path {
+  fill: var(--um-maize, #FFCB05);
+  filter: drop-shadow(0 0 2px rgba(255, 203, 5, 0.4));
+}
+
+.nb-arrow-path.left {
+  d: path("M 6,10 L 24,0 L 24,20 Z");
+}
+
+.nb-arrow-path.right {
+  d: path("M 24,10 L 6,0 L 6,20 Z");
+}
+
+.nb-digit-arc-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.nb-digit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-family: "Digital-7", monospace;
+  font-size: 8px;
+  font-weight: bold;
+  color: rgba(138, 155, 176, 0.6);
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.7);
+  will-change: transform, opacity;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  text-align: center;
+}
+
+.nb-digit.active {
+  color: var(--um-maize, #FFCB05);
+  font-size: 10px;
+  text-shadow: 0 0 6px rgba(255, 203, 5, 0.45);
+  z-index: 21;
+}
+
+.nb-crosshair {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  pointer-events: none;
+  z-index: 50;
+}
+
+.nb-crosshair-line {
+  position: absolute;
+  border: 1px solid var(--um-maize, #FFCB05);
+  opacity: 0.85;
+  filter: drop-shadow(0 0 3px rgba(255, 203, 5, 0.3));
+  transition: opacity 0.4s ease, filter 0.4s ease;
+  box-sizing: border-box;
+}
+
+.nb-crosshair-line.h {
+  width: 11px;
+  height: 2px;
+  top: -1px;
+}
+
+.nb-crosshair-line.h.left {
+  right: 6px;
+}
+
+.nb-crosshair-line.h.right {
+  left: 6px;
+}
+
+.nb-crosshair-line.v {
+  width: 2px;
+  height: 11px;
+  left: -1px;
+}
+
+.nb-crosshair-line.v.top {
+  bottom: 6px;
+}
+
+.nb-crosshair-line.v.bottom {
+  top: 6px;
+}
+
+.nb-crosshair-circle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  transform: translate(-50%, -50%);
+  background: var(--um-maize, #FFCB05);
+  border: 1px solid rgba(0, 19, 39, 0.5);
+  border-radius: 50%;
+  opacity: 0.85;
+  filter: drop-shadow(0 0 2px rgba(255, 203, 5, 0.3));
+}
+
+.nb-crosshair.glow .nb-crosshair-line,
+.nb-crosshair.glow .nb-crosshair-circle {
+  filter: drop-shadow(0 0 6px rgba(255, 203, 5, 0.55));
+  opacity: 1;
+}
+
+.nb-arc-gauge {
+  position: absolute;
+  width: 170px;
+  height: 170px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.nb-arc-gauge.top {
+  top: 17.5%;
+  left: 25%;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+}
+
+.nb-arc-gauge.bottomLeft {
+  top: 35%;
+  left: 25%;
+}
+
+.nb-arc-gauge.bottomRight {
+  top: 35%;
+  left: 25%;
+}
+
+.nb-arc-gauge svg {
+  overflow: visible;
+}
+
+@media (max-width: 1100px) {
+  .nb-assembly {
+    width: 320px;
+    height: 320px;
+  }
+
+  .nb-navball-area {
+    width: 160px;
+    height: 160px;
+  }
+
+  .nb-glow-container {
+    width: 170px;
+    height: 170px;
+  }
+
+  .nb-inner-glow {
+    top: 5px;
+    left: 5px;
+    width: 160px;
+    height: 160px;
+  }
+
+  .nb-side-gauge {
+    width: 160px;
+    height: 213px;
+  }
+
+  .nb-side-gauge.left {
+    left: -42px;
+  }
+
+  .nb-side-gauge.right {
+    right: -42px;
+  }
+
+  .nb-gauge-ring-bg {
+    width: 160px;
+    height: 160px;
+    border-width: 27px;
+  }
+
+  .nb-arc-gauge {
+    width: 160px;
+    height: 160px;
+  }
+}

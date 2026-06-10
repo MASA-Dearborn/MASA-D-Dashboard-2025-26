@@ -1,0 +1,265 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700&family=Rajdhani:wght@500;600;700&display=swap');
+
+/* ===========================================================================
+   Layout shell + center flight stage. Reusable building blocks (cards, charts,
+   modals, side panels) live in components/components.css.
+   =========================================================================== */
+
+:root {
+  --bg: #020816;
+  --line: rgba(121, 162, 214, 0.2);
+  --text: #eef5ff;
+  --muted: #9cb2cf;
+  --gold: #f4c430;
+  --green: #5bd66d;
+  --blue: #3aa0ff;
+  --cyan: #48d6ff;
+  --red: #ff6b6b;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+#root,
+.App,
+.dashboard-container { min-height: 100vh; }
+
+.dashboard-container {
+  position: relative;
+  overflow: hidden;
+  background: #000306;
+}
+
+.dashboard-backdrop,
+.dashboard-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.dashboard-backdrop {
+  background-position: center bottom;
+  background-size: cover;
+  filter: brightness(0.82) saturate(1.05);
+  transform: scale(1.02);
+}
+
+.dashboard-overlay {
+  background: linear-gradient(180deg, rgba(1, 4, 10, 0.4) 0%, rgba(1, 4, 10, 0.05) 26%, transparent 60%, rgba(1, 4, 10, 0.22) 100%);
+}
+
+/* --- Top-level grid ------------------------------------------------------- */
+.dashboard-shell {
+  position: relative;
+  z-index: 1;
+  height: 100vh;
+  box-sizing: border-box;
+  padding: 10px 18px 12px;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) 158px auto;
+  gap: 10px;
+}
+
+.top-cards {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.dashboard-main {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr) 216px;
+  gap: 14px;
+}
+
+.dashboard-col {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dashboard-left .system-panel { flex: 0 0 auto; }
+.dashboard-right .panel { flex: 0 0 auto; }
+.dashboard-right .gforce-panel { flex: 1 1 auto; justify-content: center; }
+
+.dashboard-center { position: relative; min-height: 0; }
+
+/* --- Flight stage --------------------------------------------------------- */
+.flight-stage {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  overflow: visible;
+}
+
+.flight-stage::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -18%;
+  width: 130%;
+  height: 46%;
+  transform: translateX(-50%);
+  background: radial-gradient(circle at center, rgba(71, 132, 211, 0.16), transparent 58%);
+  pointer-events: none;
+}
+
+.flight-arc {
+  position: absolute;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 210, 76, 0.22);
+  pointer-events: none;
+}
+
+.flight-arc-one { width: 56%; height: 30%; top: 14%; left: 24%; transform: rotate(-16deg); border-color: rgba(244, 196, 48, 0.28); }
+.flight-arc-two { width: 60%; height: 22%; top: 30%; left: 18%; transform: rotate(10deg); border-color: rgba(100, 170, 240, 0.2); }
+
+.stage-annotation {
+  position: absolute;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-family: 'Orbitron', sans-serif;
+  text-shadow: 0 0 10px rgba(120, 170, 240, 0.5);
+  pointer-events: none;
+}
+
+.annotation-label { font-size: 0.56rem; letter-spacing: 0.16em; color: #b7cdec; }
+.annotation-value { font-size: 0.92rem; color: #eaf2ff; }
+
+.annotation-heading { top: 6%; left: 50%; transform: translateX(-50%); align-items: center; }
+.annotation-heading .annotation-value { color: var(--gold); }
+.annotation-roll { top: 40%; right: 6%; align-items: flex-end; }
+.annotation-roll .annotation-value { color: var(--cyan); }
+.annotation-pitch { bottom: 30%; left: 8%; }
+.annotation-pitch .annotation-value { color: var(--gold); }
+
+.flight-phase-badge {
+  position: absolute;
+  z-index: 4;
+  top: 10%;
+  right: 8%;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1rem;
+  letter-spacing: 0.14em;
+  color: var(--gold);
+  text-shadow: 0 0 12px rgba(244, 196, 48, 0.4);
+  opacity: 0.85;
+}
+
+.rocket-stage { position: absolute; inset: 0; }
+
+.rocket-plume {
+  position: absolute;
+  left: 27%;
+  top: 52%;
+  width: 240px;
+  height: 36px;
+  transform: rotate(150deg);
+  transform-origin: right center;
+  background: radial-gradient(ellipse at 85% 50%, rgba(255, 230, 100, 0.85), rgba(255, 180, 40, 0.5) 24%, rgba(89, 177, 255, 0.18) 55%, transparent 80%);
+  filter: blur(7px);
+  opacity: 0.82;
+  pointer-events: none;
+}
+
+.rocket-image-stage {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  z-index: 6;
+  width: min(108%, 1040px);
+  aspect-ratio: 1.93 / 1;
+  transform: translate(-50%, -50%) rotate(150deg);
+  transform-origin: 50% 50%;
+  filter: drop-shadow(0 0 18px rgba(108, 173, 255, 0.32)) drop-shadow(0 12px 22px rgba(0, 0, 0, 0.46));
+}
+
+.rocket-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.rocket-module-button {
+  position: absolute;
+  z-index: 8;
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(244, 196, 48, 0.8);
+  border-radius: 50%;
+  background: rgba(5, 16, 31, 0.5);
+  box-shadow: 0 0 14px rgba(244, 196, 48, 0.4), inset 0 0 8px rgba(244, 196, 48, 0.2);
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  padding: 0;
+  animation: marker-pulse 2.4s ease-in-out infinite;
+}
+
+.rocket-module-button span {
+  display: block;
+  width: 8px;
+  height: 8px;
+  margin: auto;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 8px rgba(244, 196, 48, 0.8);
+}
+
+.rocket-module-button:hover,
+.rocket-module-button:focus-visible {
+  outline: none;
+  transform: translate(-50%, -50%) scale(1.18);
+  background: rgba(244, 196, 48, 0.18);
+}
+
+.navball-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  z-index: 5;
+  transform: translateX(-50%) scale(0.82);
+  transform-origin: center bottom;
+  pointer-events: none;
+}
+
+@keyframes marker-pulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(244, 196, 48, 0.35), inset 0 0 8px rgba(244, 196, 48, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(244, 196, 48, 0.6), inset 0 0 10px rgba(244, 196, 48, 0.3); }
+}
+
+/* --- Responsive ----------------------------------------------------------- */
+@media (max-width: 1400px) {
+  .dashboard-shell { padding: 8px 12px 10px; gap: 8px; }
+  .dashboard-main { grid-template-columns: 190px minmax(0, 1fr) 196px; gap: 10px; }
+  .telemetry-card { min-height: 96px; }
+}
+
+@media (max-width: 1180px) {
+  body { overflow: auto; }
+  .dashboard-shell { height: auto; min-height: 100vh; }
+  .top-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .dashboard-main { grid-template-columns: 1fr; }
+  .dashboard-center { min-height: 620px; }
+  .bottom-charts { grid-template-columns: 1fr; }
+  .dash-header { grid-template-columns: 1fr; justify-items: center; gap: 8px; }
+  .dash-header-left, .dash-header-right { justify-self: center; }
+  .chart-card { min-height: 200px; }
+}
+
+@media (max-width: 720px) {
+  .top-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dash-footer { flex-direction: column; align-items: flex-start; }
+}
