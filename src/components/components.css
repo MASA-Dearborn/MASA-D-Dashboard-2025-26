@@ -479,7 +479,15 @@
   animation: pulse 1.8s ease-in-out infinite;
 }
 
-.live-text { color: var(--green); }
+.live-dot.is-sim {
+  background: var(--gold);
+  box-shadow: 0 0 10px rgba(244, 196, 48, 0.65);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+.live-text { color: var(--muted); }
+.live-text.is-live { color: var(--green); }
+.live-text.is-sim { color: var(--gold); }
 .dash-clock { color: var(--gold); font-size: 0.74rem; }
 
 .dash-header-right {
@@ -507,6 +515,7 @@
 
 .conn-dot { width: 9px; height: 9px; border-radius: 50%; background: #555; }
 .conn-dot.is-on { background: var(--green); box-shadow: 0 0 10px rgba(123, 243, 142, 0.7); }
+.conn-dot.is-on.is-sim { background: var(--gold); box-shadow: 0 0 10px rgba(244, 196, 48, 0.65); }
 
 /* --- Trajectory / map ----------------------------------------------------- */
 .trajectory-panel { flex: 1 1 auto; }

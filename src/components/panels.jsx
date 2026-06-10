@@ -6,7 +6,23 @@ import './components.css';
 // ---------------------------------------------------------------------------
 // Header: MASA logo (left) · title + live mission clock (center) · status (right)
 // ---------------------------------------------------------------------------
-export function DashboardHeader({ logoSrc, missionClock, isLive, status, connected }) {
+const LINK_LABELS = {
+  socket: 'LIVE',
+  simulation: 'SIMULATION',
+  offline: 'OFFLINE',
+};
+
+const CONNECT_LABELS = {
+  socket: 'CONNECTED',
+  simulation: 'SIM RUNNING',
+  offline: 'NO LINK',
+};
+
+export function DashboardHeader({ logoSrc, missionClock, linkMode = 'offline', status, connected }) {
+  const active = linkMode !== 'offline';
+  const linkLabel = LINK_LABELS[linkMode] || LINK_LABELS.offline;
+  const connectLabel = connected ? (CONNECT_LABELS[linkMode] || 'CONNECTED') : 'NO LINK';
+
   return (
     <header className="dash-header">
       <div className="dash-header-left">
@@ -17,8 +33,8 @@ export function DashboardHeader({ logoSrc, missionClock, isLive, status, connect
       <div className="dash-header-center">
         <h1 className="dash-title">ROCKET TELEMETRY DASHBOARD</h1>
         <div className="dash-subtitle">
-          <span className={`live-dot ${isLive ? 'is-live' : ''}`} />
-          <span className="live-text">{isLive ? 'LIVE' : 'OFFLINE'}</span>
+          <span className={`live-dot ${active ? 'is-live' : ''} ${linkMode === 'simulation' ? 'is-sim' : ''}`} />
+          <span className={`live-text ${linkMode === 'simulation' ? 'is-sim' : ''} ${active ? 'is-live' : ''}`}>{linkLabel}</span>
           <span className="dash-subtitle-sep">MISSION TIME</span>
           <span className="dash-clock">{missionClock}</span>
         </div>
@@ -31,9 +47,9 @@ export function DashboardHeader({ logoSrc, missionClock, isLive, status, connect
         </div>
         <div className="dash-status-block">
           <span className={`dash-status-value ${connected ? 'tone-good' : 'tone-bad'}`}>
-            {connected ? 'CONNECTED' : 'NO LINK'}
+            {connectLabel}
           </span>
-          <span className={`conn-dot ${connected ? 'is-on' : ''}`} />
+          <span className={`conn-dot ${connected ? 'is-on' : ''} ${linkMode === 'simulation' ? 'is-sim' : ''}`} />
         </div>
       </div>
     </header>

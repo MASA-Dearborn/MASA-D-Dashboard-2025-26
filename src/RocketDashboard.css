@@ -37,7 +37,11 @@ body {
 }
 
 .dashboard-backdrop,
-.dashboard-overlay { position: absolute; inset: 0; }
+.dashboard-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
 
 .dashboard-backdrop {
   background-position: center bottom;
@@ -172,7 +176,7 @@ body {
   position: absolute;
   left: 50%;
   top: 42%;
-  z-index: 3;
+  z-index: 6;
   width: min(108%, 1040px);
   aspect-ratio: 1.93 / 1;
   transform: translate(-50%, -50%) rotate(150deg);
@@ -191,6 +195,7 @@ body {
 
 .rocket-module-button {
   position: absolute;
+  z-index: 8;
   width: 26px;
   height: 26px;
   border: 1px solid rgba(244, 196, 48, 0.8);
@@ -227,6 +232,7 @@ body {
   z-index: 5;
   transform: translateX(-50%) scale(0.82);
   transform-origin: center bottom;
+  pointer-events: none;
 }
 
 @keyframes marker-pulse {

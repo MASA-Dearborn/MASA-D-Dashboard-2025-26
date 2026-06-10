@@ -227,11 +227,13 @@ function FlightStage({ telemetry, flightPhase, onSelectModule }) {
   );
 }
 
-const RocketDashboard = ({ telemetry: telemetryProp }) => {
-  const isLive = telemetryProp != null;
+const RocketDashboard = ({ telemetry: telemetryProp, linkMode = 'offline', connected = false }) => {
   // Memoise the merged packet so the history effect (and downstream memos) only
   // re-run when a new telemetry packet actually arrives — not on every render.
-  const telemetry = useMemo(() => ({ ...PLACEHOLDER, ...telemetryProp }), [telemetryProp]);
+  const telemetry = useMemo(
+    () => ({ ...PLACEHOLDER, ...(telemetryProp || {}) }),
+    [telemetryProp],
+  );
   const now = useClock();
 
   const signalStrength = getSignalStrength(telemetry.packetDropped);
@@ -283,9 +285,9 @@ const RocketDashboard = ({ telemetry: telemetryProp }) => {
         <DashboardHeader
           logoSrc={LOGO_SRC}
           missionClock={formatClock(telemetry.missionTime)}
-          isLive={isLive}
+          linkMode={linkMode}
           status={status}
-          connected={isLive}
+          connected={connected}
         />
 
         <section className="top-cards">
