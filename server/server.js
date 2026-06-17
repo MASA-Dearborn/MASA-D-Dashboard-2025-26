@@ -14,30 +14,42 @@ const io = socketIo(server, {
 
 const PORT = process.env.TELEMETRY_SERVER_PORT || 4000;
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
+const MAX_GYRO_DEG_S = 500;
+
+function saneGyro(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && Math.abs(n) <= MAX_GYRO_DEG_S ? n : undefined;
+}
 
 function normalizePacket(raw) {
-  if (!raw || typeof raw !== 'object') return null;
+  if (!raw || typeof raw !== 'object' || Object.keys(raw).length === 0) return null;
+
   const packet = {
     ...raw,
-    cycles: Number(raw.cycles),
-    timestamp_ms: Number(raw.timestamp_ms),
-    altitude_est: Number(raw.altitude_est),
-    vel_est: Number(raw.vel_est),
-    acceleration: Number(raw.acceleration),
-    magnetic_heading: Number(raw.magnetic_heading),
-    barometric_pressure: Number(raw.barometric_pressure),
-    voltage: Number(raw.voltage),
-    gyro_x: Number(raw.gyro_x),
-    gyro_y: Number(raw.gyro_y),
-    gyro_z: Number(raw.gyro_z),
+    cycles: Number(raw.cycles ?? 0),
+    timestamp_ms: Number(raw.timestamp_ms ?? Date.now()),
+    altitude_est: Number(raw.altitude_est ?? raw.alt ?? 0),
+    vel_est: Number(raw.vel_est ?? raw.vel ?? raw.velocity ?? 0),
+    acceleration: Number(raw.acceleration ?? raw.accel ?? 0),
+    magnetic_heading: Number(raw.magnetic_heading ?? raw['magnetic heading'] ?? 0),
+    barometric_pressure: Number(raw.barometric_pressure ?? raw.bar ?? raw['barometric pressure'] ?? 0),
+    voltage: Number(raw.voltage ?? raw.vol ?? 0),
   };
-  if (
-    !Number.isFinite(packet.cycles) ||
-    !Number.isFinite(packet.timestamp_ms) ||
-    !Number.isFinite(packet.altitude_est) ||
-    !Number.isFinite(packet.vel_est) ||
-    !Number.isFinite(packet.acceleration)
-  ) {
+
+  const gyroX = saneGyro(raw.gyro_x);
+  const gyroY = saneGyro(raw.gyro_y);
+  const gyroZ = saneGyro(raw.gyro_z);
+  if (gyroX !== undefined) packet.gyro_x = gyroX;
+  if (gyroY !== undefined) packet.gyro_y = gyroY;
+  if (gyroZ !== undefined) packet.gyro_z = gyroZ;
+
+  const roll = Number(raw.roll);
+  if (Number.isFinite(roll) && Math.abs(roll) <= 180) packet.roll = roll;
+
+  if (!Number.isFinite(packet.cycles) || !Number.isFinite(packet.timestamp_ms)) {
+    return null;
+  }
+  if (!Number.isFinite(packet.altitude_est) || !Number.isFinite(packet.vel_est)) {
     return null;
   }
   return packet;
@@ -50,6 +62,20 @@ io.on('connection', (socket) => {
   console.log('[SERVER] Client connected');
   socket.on('disconnect', () => console.log('[SERVER] Client disconnected'));
 });
+
+// Poll the ML insights endpoint at 2 Hz and broadcast predictions + narrated
+// flight events alongside the raw telemetry stream.
+setInterval(async () => {
+  try {
+    const response = await axios.get(`${BACKEND_URL}/get_insights`);
+    const insights = response.data;
+    if (insights && (insights.predictions || insights.events)) {
+      io.emit('insights', insights);
+    }
+  } catch {
+    // Backend offline — the React app computes its own client-side insights
+  }
+}, 500);
 
 setInterval(async () => {
   try {

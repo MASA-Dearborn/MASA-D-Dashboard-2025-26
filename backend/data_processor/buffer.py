@@ -1,9 +1,15 @@
+import os
+import sys
 import queue
 import json
 import threading
 import time
 from flask import Flask, jsonify
 from flask_cors import CORS
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from ml import FlightPredictor, EventDescriber
+from packet_normalize import normalize_packet
 
 BUFFER_SIZE = 40
 DUMP_INTERVAL_SEC = 5  # Dump buffer to disk/log every 5 seconds
@@ -80,6 +86,10 @@ class TelemetryBuffer:
             time.sleep(DUMP_INTERVAL_SEC)
             self.dump_buffer()
     
+    def flush_for_shutdown(self):
+        """Write any buffered packets to disk before exit."""
+        self.dump_buffer()
+
     def stop(self):
         """Stop automatic dumping"""
         self.running = False
@@ -87,43 +97,57 @@ class TelemetryBuffer:
 # Global buffer instance
 telemetry_buffer = TelemetryBuffer()
 
+# Online ML models: fed by every packet, queried by the /get_insights API.
+flight_predictor = FlightPredictor()
+event_describer = EventDescriber(predictor=flight_predictor)
+
 # Frontend packet queue (10 Hz rate limiting)
 frontend_queue = queue.Queue(maxsize=100)
 last_frontend_send_time = 0
+latest_packet = None
 
 def buffer_to_frontend(json_packet):
     """
-    PATH 1: Simulator → Buffer → Frontend
-    Receives packets and puts them in buffer for frontend consumption
+    PATH 1: Teensy / simulator → buffer → frontend
     """
+    global latest_packet
     try:
-        data = json.loads(json_packet)
+        raw = json.loads(json_packet) if isinstance(json_packet, str) else json_packet
+        data = normalize_packet(raw)
+        latest_packet = data
         telemetry_buffer.put(data)
-        
-    except json.JSONDecodeError as e:
-        print(f"[BUFFER ERROR] Invalid JSON: {e}")
+        flight_predictor.update(data)
+        event_describer.update(data)
+
+    except (json.JSONDecodeError, ValueError) as e:
+        print(f"[BUFFER ERROR] Invalid packet: {e}")
     except Exception as e:
         print(f"[BUFFER ERROR] {e}")
 
 def get_frontend_packet():
     """
-    Frontend calls this to get packets from buffer at 10 Hz
-    Rate-limited to prevent overwhelming frontend
+    Return the next queued packet at 10 Hz, or the latest packet if the queue
+    is momentarily empty so the bridge always has data to broadcast.
     """
-    global last_frontend_send_time
-    
+    global last_frontend_send_time, latest_packet
+
     current_time = time.time()
-    
-    # Rate limit to 10 Hz
+
     if current_time - last_frontend_send_time < FRONTEND_DT:
         return None
-    
+
     packet = telemetry_buffer.get()
     if packet:
+        latest_packet = packet
         last_frontend_send_time = current_time
         print(f"[FRONTEND] Sending packet {packet.get('cycles', '?')} (10 Hz)")
-    
-    return packet
+        return packet
+
+    if latest_packet:
+        last_frontend_send_time = current_time
+        return latest_packet
+
+    return None
 
 def start_frontend_publisher(websocket_callback=None):
     """
@@ -152,6 +176,14 @@ def api_get_packet():
     if packet:
         return jsonify(packet)
     return jsonify({})
+
+@flask_app.route('/get_insights', methods=['GET'])
+def api_get_insights():
+    """ML predictions + narrated flight events for the dashboard AI panels."""
+    return jsonify({
+        "predictions": flight_predictor.get_predictions(),
+        "events": event_describer.get_events(),
+    })
 
 def start_api():
     """Start Flask API server"""

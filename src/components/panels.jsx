@@ -237,7 +237,7 @@ function formatClockLabel(seconds) {
   return `${sign}${m}:${s}`;
 }
 
-export function BottomCharts({ history, definitions }) {
+export function BottomCharts({ history, definitions, altitudeForecast = null }) {
   return (
     <section className="bottom-charts">
       {definitions.map((definition) => (
@@ -245,9 +245,18 @@ export function BottomCharts({ history, definitions }) {
           <div className="chart-card-head">
             <h3 className="chart-card-title">{definition.shortLabel}</h3>
             <span className="chart-card-unit">({definition.unit})</span>
+            {definition.id === 'altitude' && altitudeForecast?.length > 0 && (
+              <span className="chart-card-forecast-tag">ML FORECAST</span>
+            )}
           </div>
           <div className="chart-card-body">
-            <HistoryChart samples={history} definition={definition} showPoints={false} xLabel={formatClockLabel} />
+            <HistoryChart
+              samples={history}
+              definition={definition}
+              showPoints={false}
+              xLabel={formatClockLabel}
+              forecast={definition.id === 'altitude' ? altitudeForecast : null}
+            />
           </div>
         </div>
       ))}

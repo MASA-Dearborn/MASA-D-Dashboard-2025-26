@@ -363,10 +363,10 @@ function norm180(deg) {
 }
 
 
-export function AttitudeGauges({ rotation }) {
+export function AttitudeGauges({ rotation, hasRoll = true }) {
   const pitch = norm180(radToDeg(rotation?.x ?? 0));
   const yaw = norm360(radToDeg(rotation?.y ?? 0));
-  const roll = norm180(-radToDeg(rotation?.z ?? 0));
+  const roll = hasRoll ? norm180(-radToDeg(rotation?.z ?? 0)) : null;
 
   return (
     <>
@@ -380,9 +380,9 @@ export function AttitudeGauges({ rotation }) {
       <ArcGauge
         position="bottomLeft"
         label="ROLL"
-        value={roll}
+        value={roll ?? 0}
         maxValue={180}
-        formatValue={(v) => `${v.toFixed(0)}\u00B0`}
+        formatValue={(v) => (hasRoll ? `${v.toFixed(0)}\u00B0` : '--')}
       />
       <ArcGauge
         position="bottomRight"

@@ -10,6 +10,7 @@ export function getNumericHistory(history, definition) {
   return history
     .map((sample, index) => ({
       index,
+      time: sample.time,
       missionTime: sample.missionTime,
       value: sample.values?.[definition.id],
     }))
@@ -23,8 +24,16 @@ function useElementSize() {
   const [size, setSize] = useState({ width: 0, height: 0 });
 
   useLayoutEffect(() => {
-    if (!ref.current || typeof ResizeObserver === 'undefined') return undefined;
+    if (!ref.current) return undefined;
     const element = ref.current;
+
+    // Measure synchronously on mount: ResizeObserver callbacks are delivered
+    // on rendering frames, which are suspended in occluded/background windows,
+    // so charts must not depend on the observer's first callback to appear.
+    const rect = element.getBoundingClientRect();
+    setSize({ width: Math.round(rect.width), height: Math.round(rect.height) });
+
+    if (typeof ResizeObserver === 'undefined') return undefined;
     const observer = new ResizeObserver((entries) => {
       const rect = entries[0]?.contentRect;
       if (!rect) return;
@@ -110,6 +119,7 @@ export default function HistoryChart({
   showValueTag = true,
   xLabel = (t) => `${Math.round(t)}s`,
   compact = false,
+  forecast = null,
 }) {
   const [ref, { width, height }] = useElementSize();
   const numeric = getNumericHistory(samples, definition);
@@ -127,6 +137,7 @@ export default function HistoryChart({
           showValueTag={showValueTag}
           xLabel={xLabel}
           compact={compact}
+          forecast={forecast}
         />
       ) : (
         <div className="history-chart-empty">Collecting samples…</div>
@@ -135,7 +146,7 @@ export default function HistoryChart({
   );
 }
 
-function HistoryChartSvg({ numeric, definition, width, height, showPoints, showValueTag, xLabel, compact }) {
+function HistoryChartSvg({ numeric, definition, width, height, showPoints, showValueTag, xLabel, compact, forecast }) {
   const padL = compact ? 38 : 52;
   const padR = compact ? 10 : 18;
   const padT = compact ? 10 : 16;
@@ -143,15 +154,34 @@ function HistoryChartSvg({ numeric, definition, width, height, showPoints, showV
   const plotW = Math.max(1, width - padL - padR);
   const plotH = Math.max(1, height - padT - padB);
 
+  // ML forecast overlay: predicted samples are spaced in seconds, so convert
+  // them into fractional sample indices using the observed sample cadence.
+  // The x-domain is widened (capped at +45%) so the dashed line has room.
+  const n = numeric.length;
+  const first = numeric[0];
+  const last0 = numeric[n - 1];
+  const dtAvg = first.time != null && last0.time != null && n > 1
+    ? Math.max((last0.time - first.time) / 1000 / (n - 1), 1e-3)
+    : 1;
+  const maxExtra = (n - 1) * 0.45;
+  const forecastPts = (forecast || [])
+    .filter((f) => Number.isFinite(f.dt) && Number.isFinite(f.alt) && f.dt > 0)
+    .map((f) => ({ idx: (n - 1) + f.dt / dtAvg, value: f.alt }))
+    .filter((f) => f.idx <= (n - 1) + maxExtra);
+  const domainMax = forecastPts.length
+    ? Math.max(...forecastPts.map((f) => f.idx))
+    : n - 1;
+
   const values = numeric.map((s) => s.value);
-  const dataMin = Math.min(...values);
-  const dataMax = Math.max(...values);
+  const forecastValues = forecastPts.map((f) => f.value);
+  const dataMin = Math.min(...values, ...(forecastValues.length ? forecastValues : [Infinity]));
+  const dataMax = Math.max(...values, ...(forecastValues.length ? forecastValues : [-Infinity]));
   const ticks = niceTicks(dataMin, dataMax, compact ? 3 : 4);
   const axisMin = Math.min(dataMin, ticks[0]);
   const axisMax = Math.max(dataMax, ticks[ticks.length - 1]);
   const range = axisMax - axisMin || 1;
 
-  const toX = (i) => padL + (i / (numeric.length - 1)) * plotW;
+  const toX = (i) => padL + (i / Math.max(domainMax, 1)) * plotW;
   const toY = (value) => padT + (1 - (value - axisMin) / range) * plotH;
 
   const points = numeric.map((sample, i) => ({ x: toX(i), y: toY(sample.value), sample }));
@@ -203,6 +233,27 @@ function HistoryChartSvg({ numeric, definition, width, height, showPoints, showV
 
       <path d={area} fill={`url(#${gid})`} />
       <path className="chart-line" d={line} stroke={definition.color} vectorEffect="non-scaling-stroke" />
+
+      {forecastPts.length > 0 && (
+        <g className="chart-forecast">
+          <path
+            className="chart-forecast-line"
+            d={`M ${last.x.toFixed(1)},${last.y.toFixed(1)} L ${forecastPts
+              .map((f) => `${toX(f.idx).toFixed(1)},${toY(f.value).toFixed(1)}`)
+              .join(' L ')}`}
+            fill="none"
+            vectorEffect="non-scaling-stroke"
+          />
+          <text
+            className="chart-forecast-label"
+            x={toX(forecastPts[forecastPts.length - 1].idx)}
+            y={toY(forecastPts[forecastPts.length - 1].value) - 8}
+            textAnchor="end"
+          >
+            AI FORECAST
+          </text>
+        </g>
+      )}
 
       {showPoints &&
         points.map((p, i) => (

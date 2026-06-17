@@ -52,13 +52,17 @@ function NavBall3D({ onRotationChange, pitch = 0, yaw = 0, roll = 0 }) {
 export default function NavballAssembly({
   acceleration = 0,
   magneticHeading = 0,
-  roll = 0,
+  roll,
   velocity = 0,
   altitude = 0,
 }) {
   const [navRotation, setNavRotation] = useState({ x: 0, y: 0, z: 0 });
+  const hasRoll = typeof roll === 'number' && Number.isFinite(roll);
+  const rollDeg = hasRoll ? roll : 0;
   const pitch = Math.max(-90, Math.min(90, (90 * (acceleration + 10)) / 70));
-  const headingLabel = `${Math.round(((magneticHeading % 360) + 360) % 360)}°`;
+  const headingLabel = Number.isFinite(Number(magneticHeading))
+    ? `${Math.round(((magneticHeading % 360) + 360) % 360)}°`
+    : '--';
 
   return (
     <div className="nb-assembly">
@@ -90,7 +94,7 @@ export default function NavballAssembly({
                 onRotationChange={setNavRotation}
                 pitch={pitch}
                 yaw={magneticHeading}
-                roll={roll}
+                roll={rollDeg}
               />
             </Suspense>
           </Canvas>
@@ -98,7 +102,7 @@ export default function NavballAssembly({
         </div>
       </div>
 
-      <AttitudeGauges rotation={navRotation} />
+      <AttitudeGauges rotation={navRotation} hasRoll={hasRoll} />
     </div>
   );
 }

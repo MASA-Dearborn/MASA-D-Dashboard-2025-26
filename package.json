@@ -13,7 +13,13 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "server": "npm start --prefix server"
+    "server": "npm start --prefix server",
+    "backend": "python backend/main/main.py --simulator",
+    "backend:teensy": "python backend/main/main.py",
+    "dev": "concurrently -n backend,bridge,ui -c blue,magenta,green \"npm run backend\" \"npm run server\" \"npm start\"",
+    "teensy": "concurrently -n teensy,bridge,ui -c blue,magenta,green \"npm run backend:teensy\" \"npm run server\" \"cross-env REACT_APP_TEENSY_MODE=true npm start\"",
+    "dev:windows": "run_all.bat",
+    "dev:windows:teensy": "run_all_teensy.bat"
   },
   "browserslist": {
     "production": [
@@ -26,5 +32,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3",
+    "cross-env": "^10.1.0"
   }
 }

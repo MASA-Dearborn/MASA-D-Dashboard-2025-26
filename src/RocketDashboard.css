@@ -1,21 +1,38 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700&family=Rajdhani:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap');
 
 /* ===========================================================================
-   Layout shell + center flight stage. Reusable building blocks (cards, charts,
-   modals, side panels) live in components/components.css.
+   MASA mission-control visual system.
+   Neon HUD over deep space: hard-edged panels with corner brackets, phase-
+   reactive accent colour, scanline overlay and glowing instrumentation.
+   The accent (--accent) follows the flight phase via [data-phase] below.
    =========================================================================== */
 
 :root {
-  --bg: #020816;
-  --line: rgba(121, 162, 214, 0.2);
-  --text: #eef5ff;
-  --muted: #9cb2cf;
-  --gold: #f4c430;
-  --green: #5bd66d;
+  --bg: #01040a;
+  --line: rgba(96, 160, 230, 0.16);
+  --line-strong: rgba(0, 229, 255, 0.35);
+  --text: #e9f6ff;
+  --muted: #7e94b8;
+  --gold: #ffc233;
+  --green: #36f29b;
   --blue: #3aa0ff;
-  --cyan: #48d6ff;
-  --red: #ff6b6b;
+  --cyan: #00e5ff;
+  --red: #ff4d6b;
+  --purple: #b16cff;
+  --orange: #ff8b3d;
+  --accent: var(--cyan);
+  --accent-soft: rgba(0, 229, 255, 0.16);
+  --panel-bg: linear-gradient(165deg, rgba(7, 17, 34, 0.82), rgba(2, 8, 18, 0.72));
+  --mono: 'Share Tech Mono', 'Consolas', monospace;
 }
+
+/* Accent tracks the flight phase — the whole HUD subtly re-tints. */
+.dashboard-container[data-phase='BOOST'] { --accent: var(--orange); --accent-soft: rgba(255, 139, 61, 0.16); }
+.dashboard-container[data-phase='ASCENT'],
+.dashboard-container[data-phase='COAST'] { --accent: var(--gold); --accent-soft: rgba(255, 194, 51, 0.15); }
+.dashboard-container[data-phase='DESCENT'] { --accent: var(--purple); --accent-soft: rgba(177, 108, 255, 0.16); }
+.dashboard-container[data-phase='RECOVERY'],
+.dashboard-container[data-phase='LANDED'] { --accent: var(--green); --accent-soft: rgba(54, 242, 155, 0.15); }
 
 body {
   margin: 0;
@@ -33,7 +50,7 @@ body {
 .dashboard-container {
   position: relative;
   overflow: hidden;
-  background: #000306;
+  background: #000208;
 }
 
 .dashboard-backdrop,
@@ -46,23 +63,35 @@ body {
 .dashboard-backdrop {
   background-position: center bottom;
   background-size: cover;
-  filter: brightness(0.82) saturate(1.05);
-  transform: scale(1.02);
+  filter: brightness(0.7) saturate(1.1);
+  animation: backdrop-drift 90s ease-in-out infinite alternate;
 }
 
+@keyframes backdrop-drift {
+  from { transform: scale(1.03) translate(0, 0); }
+  to { transform: scale(1.08) translate(-12px, -8px); }
+}
+
+/* Subtle scanlines + vignette, layered in one overlay. Kept faint so the
+   instrumentation stays crisp and readable. */
 .dashboard-overlay {
-  background: linear-gradient(180deg, rgba(1, 4, 10, 0.4) 0%, rgba(1, 4, 10, 0.05) 26%, transparent 60%, rgba(1, 4, 10, 0.22) 100%);
+  z-index: 1;
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.07) 0 1px, transparent 1px 4px),
+    radial-gradient(120% 90% at 50% 8%, transparent 58%, rgba(0, 2, 8, 0.5) 100%),
+    linear-gradient(180deg, rgba(1, 4, 10, 0.45) 0%, rgba(1, 4, 10, 0.05) 22%, transparent 62%, rgba(1, 4, 10, 0.36) 100%);
 }
 
 /* --- Top-level grid ------------------------------------------------------- */
 .dashboard-shell {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   height: 100vh;
   box-sizing: border-box;
   padding: 10px 18px 12px;
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) 158px auto;
+  /* header · cards · main stage · narrator strip · charts · footer */
+  grid-template-rows: auto auto minmax(0, 1fr) auto 150px auto;
   gap: 10px;
 }
 
@@ -75,7 +104,7 @@ body {
 .dashboard-main {
   min-height: 0;
   display: grid;
-  grid-template-columns: 210px minmax(0, 1fr) 216px;
+  grid-template-columns: 212px minmax(0, 1fr) 218px;
   gap: 14px;
 }
 
@@ -108,7 +137,9 @@ body {
   width: 130%;
   height: 46%;
   transform: translateX(-50%);
-  background: radial-gradient(circle at center, rgba(71, 132, 211, 0.16), transparent 58%);
+  background: radial-gradient(circle at center, var(--accent-soft), transparent 58%);
+  opacity: 0.7;
+  transition: background 600ms ease;
   pointer-events: none;
 }
 
@@ -119,41 +150,69 @@ body {
   pointer-events: none;
 }
 
-.flight-arc-one { width: 56%; height: 30%; top: 14%; left: 24%; transform: rotate(-16deg); border-color: rgba(244, 196, 48, 0.28); }
-.flight-arc-two { width: 60%; height: 22%; top: 30%; left: 18%; transform: rotate(10deg); border-color: rgba(100, 170, 240, 0.2); }
+.flight-arc-one { width: 56%; height: 30%; top: 14%; left: 24%; transform: rotate(-16deg); border-color: rgba(255, 194, 51, 0.3); animation: arc-glow 4s ease-in-out infinite; }
+.flight-arc-two { width: 60%; height: 22%; top: 30%; left: 18%; transform: rotate(10deg); border-color: rgba(0, 229, 255, 0.22); border-style: dashed; }
+
+@keyframes arc-glow {
+  0%, 100% { box-shadow: 0 0 0 rgba(255, 194, 51, 0); }
+  50% { box-shadow: 0 0 24px rgba(255, 194, 51, 0.12), inset 0 0 24px rgba(255, 194, 51, 0.06); }
+}
 
 .stage-annotation {
   position: absolute;
   z-index: 4;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
+  padding: 4px 9px;
+  border-left: 2px solid var(--accent);
+  background: linear-gradient(90deg, rgba(2, 10, 22, 0.72), transparent);
   font-family: 'Orbitron', sans-serif;
   text-shadow: 0 0 10px rgba(120, 170, 240, 0.5);
   pointer-events: none;
 }
 
-.annotation-label { font-size: 0.56rem; letter-spacing: 0.16em; color: #b7cdec; }
-.annotation-value { font-size: 0.92rem; color: #eaf2ff; }
+.annotation-label { font-size: 0.54rem; letter-spacing: 0.18em; color: var(--muted); }
+.annotation-value { font-family: var(--mono); font-size: 1.02rem; color: #eaf2ff; }
 
-.annotation-heading { top: 6%; left: 50%; transform: translateX(-50%); align-items: center; }
+.annotation-heading { top: 6%; left: 50%; transform: translateX(-50%); align-items: center; border-left: none; border-top: 2px solid var(--gold); background: linear-gradient(180deg, rgba(2, 10, 22, 0.72), transparent); }
 .annotation-heading .annotation-value { color: var(--gold); }
-.annotation-roll { top: 40%; right: 6%; align-items: flex-end; }
+.annotation-roll { top: 40%; right: 6%; align-items: flex-end; border-left: none; border-right: 2px solid var(--cyan); background: linear-gradient(270deg, rgba(2, 10, 22, 0.72), transparent); }
 .annotation-roll .annotation-value { color: var(--cyan); }
 .annotation-pitch { bottom: 30%; left: 8%; }
 .annotation-pitch .annotation-value { color: var(--gold); }
 
+/* Phase badge: glowing chip that re-tints with the phase accent. */
 .flight-phase-badge {
   position: absolute;
   z-index: 4;
   top: 10%;
   right: 8%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border: 1px solid var(--accent);
+  background: rgba(2, 8, 18, 0.68);
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
   font-family: 'Orbitron', sans-serif;
-  font-size: 1rem;
-  letter-spacing: 0.14em;
-  color: var(--gold);
-  text-shadow: 0 0 12px rgba(244, 196, 48, 0.4);
-  opacity: 0.85;
+  font-size: 0.94rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+  text-shadow: 0 0 14px var(--accent-soft);
+  box-shadow: 0 0 18px var(--accent-soft), inset 0 0 10px var(--accent-soft);
+  transition: color 500ms ease, border-color 500ms ease, box-shadow 500ms ease;
+}
+
+.flight-phase-badge::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+  animation: pulse 1.4s ease-in-out infinite;
 }
 
 .rocket-stage { position: absolute; inset: 0; }
@@ -170,6 +229,12 @@ body {
   filter: blur(7px);
   opacity: 0.82;
   pointer-events: none;
+  animation: plume-flicker 160ms steps(2) infinite;
+}
+
+@keyframes plume-flicker {
+  0%, 100% { opacity: 0.82; }
+  50% { opacity: 0.76; }
 }
 
 .rocket-image-stage {
@@ -198,10 +263,10 @@ body {
   z-index: 8;
   width: 26px;
   height: 26px;
-  border: 1px solid rgba(244, 196, 48, 0.8);
+  border: 1px solid rgba(255, 194, 51, 0.8);
   border-radius: 50%;
   background: rgba(5, 16, 31, 0.5);
-  box-shadow: 0 0 14px rgba(244, 196, 48, 0.4), inset 0 0 8px rgba(244, 196, 48, 0.2);
+  box-shadow: 0 0 14px rgba(255, 194, 51, 0.4), inset 0 0 8px rgba(255, 194, 51, 0.2);
   transform: translate(-50%, -50%);
   cursor: pointer;
   padding: 0;
@@ -215,14 +280,14 @@ body {
   margin: auto;
   border-radius: 50%;
   background: var(--gold);
-  box-shadow: 0 0 8px rgba(244, 196, 48, 0.8);
+  box-shadow: 0 0 8px rgba(255, 194, 51, 0.8);
 }
 
 .rocket-module-button:hover,
 .rocket-module-button:focus-visible {
   outline: none;
   transform: translate(-50%, -50%) scale(1.18);
-  background: rgba(244, 196, 48, 0.18);
+  background: rgba(255, 194, 51, 0.18);
 }
 
 .navball-wrap {
@@ -236,14 +301,14 @@ body {
 }
 
 @keyframes marker-pulse {
-  0%, 100% { box-shadow: 0 0 12px rgba(244, 196, 48, 0.35), inset 0 0 8px rgba(244, 196, 48, 0.2); }
-  50% { box-shadow: 0 0 20px rgba(244, 196, 48, 0.6), inset 0 0 10px rgba(244, 196, 48, 0.3); }
+  0%, 100% { box-shadow: 0 0 12px rgba(255, 194, 51, 0.35), inset 0 0 8px rgba(255, 194, 51, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(255, 194, 51, 0.6), inset 0 0 10px rgba(255, 194, 51, 0.3); }
 }
 
 /* --- Responsive ----------------------------------------------------------- */
 @media (max-width: 1400px) {
   .dashboard-shell { padding: 8px 12px 10px; gap: 8px; }
-  .dashboard-main { grid-template-columns: 190px minmax(0, 1fr) 196px; gap: 10px; }
+  .dashboard-main { grid-template-columns: 192px minmax(0, 1fr) 198px; gap: 10px; }
   .telemetry-card { min-height: 96px; }
 }
 

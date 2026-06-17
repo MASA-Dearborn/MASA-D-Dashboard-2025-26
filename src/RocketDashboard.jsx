@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useGLTF } from '@react-three/drei';
 import './RocketDashboard.css';
 import NavballAssembly from './NavballAssembly';
@@ -12,6 +12,8 @@ import TELEMETRY_DEFINITIONS, {
 import TelemetryCard from './components/TelemetryCard';
 import TelemetryModal from './components/TelemetryModal';
 import ModuleModal from './components/ModuleModal';
+import { AIPredictionsPanel, MissionNarratorPanel } from './components/AIPanels';
+import useFlightInsights from './ai/useFlightInsights';
 import {
   BottomCharts,
   DashboardFooter,
@@ -23,37 +25,14 @@ import {
   TrajectoryPanel,
 } from './components/panels';
 
-const PLACEHOLDER = {
-  missionTime: -992,
-  velocity: 342,
-  acceleration: 47,
-  lat: 42.3223,
-  long: -83.1763,
-  alt: 1524,
-  vol: 11.84,
-  bar: 1013.2,
-  magneticHeading: 45,
-  roll: 5,
-  packetDropped: 3,
-};
-
 const LOGO_SRC = '/logo.png';
 const SPACE_BG_SRC = '/space.png';
 const ROCKET_IMAGE_SRC = '/rocket.png';
 const HISTORY_LIMIT = 80;
-const APOGEE_REFERENCE = 2540; // m, used only for the stylised trajectory marker
+const APOGEE_REFERENCE = 2540; // m, trajectory fallback before the ML model has a prediction
 
 const TOP_CARD_IDS = ['altitude', 'velocity', 'voltage', 'pressure', 'rssi'];
 const BOTTOM_CHART_IDS = ['altitude', 'velocity', 'pressure'];
-
-const FLIGHT_EVENT_TEMPLATE = [
-  { at: 0, label: 'System Armed', tone: 'good' },
-  { at: 1, label: 'Launch Detected', tone: 'good' },
-  { at: 8, label: 'Max Q Passed', tone: 'info' },
-  { at: 42, label: 'Apogee Detected', tone: 'warn' },
-  { at: 44, label: 'Drogue Deployed', tone: 'info' },
-  { at: 62, label: 'Main Chute Deployed', tone: 'info' },
-];
 
 const AVAILABLE_MODULES = getAvailableModules();
 
@@ -82,35 +61,57 @@ function formatClock(totalSeconds) {
   return `${sign}${h}:${m}:${s}`;
 }
 
-function getFlightPhase({ missionTime, alt, velocity, flightPhase }) {
-  if (flightPhase) return flightPhase;
-  if (missionTime != null && missionTime < 0) return 'ARMED';
-  if (alt > 1200 || velocity > 250) return 'BOOST';
-  if (alt > 250 || velocity > 90) return 'ASCENT';
-  return 'READY';
+// Phase comes from the packet's flight_state when the flight computer reports
+// one; otherwise it is derived from the AI event detector's latest milestone —
+// never guessed from raw magnitude thresholds.
+const EVENT_PHASE = {
+  armed: 'ARMED',
+  launch: 'BOOST',
+  burnout: 'COAST',
+  apogee: 'DESCENT',
+  drogue: 'DESCENT',
+  main: 'DESCENT',
+  landing: 'RECOVERY',
+};
+
+function getFlightPhase(telemetry, insights) {
+  if (telemetry.flightPhase) return telemetry.flightPhase;
+  const events = (insights?.events || []).filter((e) => !e.transient);
+  for (let i = events.length - 1; i >= 0; i -= 1) {
+    const phase = EVENT_PHASE[events[i].type];
+    if (phase) return phase;
+  }
+  return 'STANDBY';
 }
 
+// Link-quality estimate from recent packet drops; undefined until the link
+// has reported anything, so the card shows '--' rather than an invented value.
 function getSignalStrength(packetDropped) {
-  if (packetDropped == null) return 84;
-  return Math.max(60, 96 - packetDropped * 4);
+  if (packetDropped == null || !Number.isFinite(Number(packetDropped))) return undefined;
+  return Math.max(40, 98 - Number(packetDropped) * 4);
 }
 
 // Append the latest packet to a rolling history buffer, resolving every metric
-// through the definitions layer so charts never touch raw fields.
+// through the definitions layer so charts never touch raw fields. Exactly one
+// sample per packet: fallbacks are read through a ref so a fallback-only
+// change (e.g. RSSI recomputed) can never append a duplicate sample — that
+// would corrupt sample-rate-sensitive consumers like the AI rate estimator.
 function useTelemetryHistory(telemetry, fallbacks) {
   const [history, setHistory] = useState([]);
+  const fallbacksRef = useRef(fallbacks);
+  fallbacksRef.current = fallbacks;
 
   useEffect(() => {
     const sample = {
       time: Date.now(),
       missionTime: telemetry.missionTime,
       values: TELEMETRY_DEFINITIONS.reduce((acc, definition) => {
-        acc[definition.id] = readTelemetryValue(telemetry, definition, fallbacks);
+        acc[definition.id] = readTelemetryValue(telemetry, definition, fallbacksRef.current);
         return acc;
       }, {}),
     };
     setHistory((previous) => [...previous.slice(-(HISTORY_LIMIT - 1)), sample]);
-  }, [telemetry, fallbacks]);
+  }, [telemetry]);
 
   return history;
 }
@@ -124,12 +125,20 @@ function useClock() {
   return now;
 }
 
-function buildFlightEvents(missionTime) {
-  if (missionTime == null) return [];
-  return FLIGHT_EVENT_TEMPLATE.filter((event) => event.at <= missionTime)
-    .sort((a, b) => b.at - a.at)
-    .slice(0, 5)
-    .map((event) => ({ ...event, time: formatClock(event.at) }));
+// Flight events come from the AI event describer (backend when live, the
+// client-side mirror otherwise) — newest first, transient status lines hidden.
+function buildFlightEvents(insights) {
+  const events = insights?.events || [];
+  return events
+    .filter((event) => !event.transient)
+    .slice(-6)
+    .reverse()
+    .map((event) => ({
+      label: event.label,
+      tone: event.tone,
+      time: formatClock(event.t),
+      key: `${event.type}-${event.clock}`,
+    }));
 }
 
 function buildTemperatureChannels(telemetry) {
@@ -146,22 +155,42 @@ function buildTemperatureChannels(telemetry) {
   });
 }
 
-function buildSystemStatus(telemetry) {
+// Every row is derived from real telemetry — nothing is hardcoded "OK".
+function buildSystemStatus(telemetry, hasData) {
   const hasGps =
     Number.isFinite(Number(telemetry.lat)) && Number.isFinite(Number(telemetry.long));
   const voltage = Number(telemetry.vol);
   const hasVoltage = Number.isFinite(voltage);
+  const hasBaro = Number.isFinite(Number(telemetry.bar));
+  const hasImu = Number.isFinite(Number(telemetry.acceleration));
+  const sensors = hasBaro && hasImu
+    ? { value: 'OK', tone: 'good' }
+    : hasBaro || hasImu
+      ? { value: 'DEGRADED', tone: 'warn' }
+      : { value: 'NO DATA', tone: hasData ? 'bad' : 'muted' };
+  const ctrl = telemetry.ctrlHealth;
+
   return [
-    { icon: 'computer', label: 'Flight Computer', value: 'OK', tone: 'good' },
-    { icon: 'sensor', label: 'Sensors', value: 'OK', tone: 'good' },
+    {
+      icon: 'computer',
+      label: 'Flight Computer',
+      value: hasData ? 'OK' : 'NO LINK',
+      tone: hasData ? 'good' : 'muted',
+    },
+    { icon: 'sensor', label: 'Sensors', ...sensors },
     { icon: 'gps', label: 'GPS', value: hasGps ? 'LOCKED' : 'NO FIX', tone: hasGps ? 'good' : 'warn' },
     {
       icon: 'battery',
       label: 'Battery',
       value: hasVoltage ? `${voltage.toFixed(2)} V` : '--',
-      tone: !hasVoltage ? 'muted' : voltage >= 11 ? 'good' : 'warn',
+      tone: !hasVoltage ? 'muted' : voltage >= 11.1 ? 'good' : voltage >= 10.5 ? 'warn' : 'bad',
     },
-    { icon: 'payload', label: 'Payload', value: 'ACTIVE', tone: 'good' },
+    {
+      icon: 'payload',
+      label: 'Payload',
+      value: ctrl === 1 ? 'ACTIVE' : ctrl === 0 ? 'FAULT' : '--',
+      tone: ctrl === 1 ? 'good' : ctrl === 0 ? 'bad' : 'muted',
+    },
   ];
 }
 
@@ -178,8 +207,7 @@ function FlightStage({ telemetry, flightPhase, onSelectModule }) {
     annotations.push({ key: 'roll', cls: 'annotation-roll', label: 'ROLL', value: `${formatNumber(telemetry.roll, 1)}°` });
   }
   if (Number.isFinite(Number(telemetry.acceleration))) {
-    const pitch = clamp((telemetry.acceleration || 0) * 0.22 + 8, -30, 30);
-    annotations.push({ key: 'pitch', cls: 'annotation-pitch', label: 'PITCH', value: `${pitch.toFixed(1)}°` });
+    annotations.push({ key: 'accel', cls: 'annotation-pitch', label: 'ACCEL', value: `${formatNumber(telemetry.acceleration, 1)} m/s²` });
   }
 
   return (
@@ -227,28 +255,28 @@ function FlightStage({ telemetry, flightPhase, onSelectModule }) {
   );
 }
 
-const RocketDashboard = ({ telemetry: telemetryProp, linkMode = 'offline', connected = false }) => {
-  // Memoise the merged packet so the history effect (and downstream memos) only
+const RocketDashboard = ({
+  telemetry: telemetryProp,
+  serverInsights = null,
+  linkMode = 'offline',
+  connected = false,
+}) => {
+  // Memoise the packet so the history effect (and downstream memos) only
   // re-run when a new telemetry packet actually arrives — not on every render.
-  const telemetry = useMemo(
-    () => ({ ...PLACEHOLDER, ...(telemetryProp || {}) }),
-    [telemetryProp],
-  );
+  // No placeholder values: any channel that is absent simply reads '--'.
+  const telemetry = useMemo(() => telemetryProp || {}, [telemetryProp]);
+  const hasData = telemetryProp != null;
   const now = useClock();
 
   const signalStrength = getSignalStrength(telemetry.packetDropped);
-  const flightPhase = getFlightPhase(telemetry);
   const telemetryFallbacks = useMemo(
-    () => ({ rssi: signalStrength, flightPhase }),
-    [signalStrength, flightPhase],
+    () => ({ rssi: signalStrength }),
+    [signalStrength],
   );
   const history = useTelemetryHistory(telemetry, telemetryFallbacks);
 
   const [selectedMetric, setSelectedMetric] = useState(null);
   const [selectedModule, setSelectedModule] = useState(null);
-
-  const packetDropped = Number(telemetry.packetDropped) || 0;
-  const status = packetDropped > 1 ? { label: 'CAUTION', tone: 'warn' } : { label: 'NOMINAL', tone: 'good' };
 
   const topCards = TOP_CARD_IDS.map((id) => {
     const definition = getDefinition(id);
@@ -259,13 +287,42 @@ const RocketDashboard = ({ telemetry: telemetryProp, linkMode = 'offline', conne
   });
   const bottomChartDefs = BOTTOM_CHART_IDS.map(getDefinition);
 
-  const flightEvents = buildFlightEvents(telemetry.missionTime);
+  // ML insights: backend models when the bridge is live, client mirror otherwise.
+  const insights = useFlightInsights(history, serverInsights, linkMode === 'socket');
+  const predictions = insights?.predictions;
+  const altitudeForecast = predictions?.ready ? predictions.forecast : null;
+  const flightPhase = getFlightPhase(telemetry, insights);
+
+  // Overall status rolls up link health, battery and active ML anomalies.
+  const packetDropped = Number(telemetry.packetDropped) || 0;
+  const voltage = Number(telemetry.vol);
+  const recentAnomalies = (predictions?.ready && predictions.anomalies
+    ? predictions.anomalies.filter((a) => predictions.t == null || predictions.t - a.t < 30)
+    : []);
+  let status = { label: 'NOMINAL', tone: 'good' };
+  if (!hasData) status = { label: 'STANDBY', tone: 'muted' };
+  else if (
+    packetDropped > 1 ||
+    recentAnomalies.length > 0 ||
+    (Number.isFinite(voltage) && voltage < 11.1)
+  ) status = { label: 'CAUTION', tone: 'warn' };
+  if (
+    (Number.isFinite(voltage) && voltage < 10.5) ||
+    recentAnomalies.some((a) => a.kind === 'battery-low')
+  ) status = { label: 'CRITICAL', tone: 'bad' };
+
+  const flightEvents = buildFlightEvents(insights);
   const temperatureChannels = buildTemperatureChannels(telemetry);
-  const systemStatus = buildSystemStatus(telemetry);
+  const systemStatus = buildSystemStatus(telemetry, hasData);
   const gforce = Number.isFinite(Number(telemetry.acceleration))
     ? telemetry.acceleration / 9.80665
     : null;
-  const trajectoryProgress = clamp((Number(telemetry.alt) || 0) / APOGEE_REFERENCE, 0, 1);
+  // The trajectory marker climbs toward the ML-predicted apogee (falls back to
+  // a nominal target before the model converges).
+  const apogeeReference = predictions?.ready && predictions.apogee_m > 100
+    ? predictions.apogee_m
+    : APOGEE_REFERENCE;
+  const trajectoryProgress = clamp((Number(telemetry.alt) || 0) / apogeeReference, 0, 1);
 
   const footerMeta = [
     { label: 'MISSION', value: 'Test Flight #24' },
@@ -277,7 +334,7 @@ const RocketDashboard = ({ telemetry: telemetryProp, linkMode = 'offline', conne
   ];
 
   return (
-    <div className="dashboard-container">
+    <div className="dashboard-container" data-phase={flightPhase}>
       <div className="dashboard-backdrop" style={{ backgroundImage: `url(${SPACE_BG_SRC})` }} />
       <div className="dashboard-overlay" />
 
@@ -311,6 +368,7 @@ const RocketDashboard = ({ telemetry: telemetryProp, linkMode = 'offline', conne
               progress={trajectoryProgress}
             />
             <SystemStatusPanel items={systemStatus} />
+            <AIPredictionsPanel predictions={predictions} />
           </aside>
 
           <section className="dashboard-center">
@@ -324,7 +382,13 @@ const RocketDashboard = ({ telemetry: telemetryProp, linkMode = 'offline', conne
           </aside>
         </div>
 
-        <BottomCharts history={history} definitions={bottomChartDefs} />
+        <MissionNarratorPanel events={insights?.events} />
+
+        <BottomCharts
+          history={history}
+          definitions={bottomChartDefs}
+          altitudeForecast={altitudeForecast}
+        />
 
         <DashboardFooter
           meta={footerMeta}
@@ -344,4 +408,3 @@ AVAILABLE_MODULES.forEach((module) => {
 });
 
 export default RocketDashboard;
-export { PLACEHOLDER };

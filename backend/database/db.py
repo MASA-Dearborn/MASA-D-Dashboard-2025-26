@@ -1,5 +1,10 @@
 # backend/database/db.py
 import sqlite3
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from packet_normalize import normalize_packet
 
 DB_PATH = "telemetry.db"
 
@@ -54,11 +59,10 @@ def init_database():
 
 def write_to_sql(data):
     """Write telemetry data directly to SQL database (expects normalized dict)"""
+    data = normalize_packet(data) if isinstance(data, dict) else data
+
     conn = _get_connection()
     cursor = conn.cursor()
-
-    lat = data.get("latitude")
-    gps = data.get("GPS")
 
     cursor.execute("""
         INSERT INTO telemetry (
@@ -68,24 +72,24 @@ def write_to_sql(data):
             gyro_x, gyro_y, gyro_z
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
-        data["timestamp_ms"],
+        data.get("timestamp_ms"),
         data.get("flight_state"),
         data.get("act_cmd"),
         data.get("act_meas"),
         data.get("ctrl_health"),
-        data["altitude_est"],
-        data["vel_est"],
+        data.get("altitude_est"),
+        data.get("vel_est"),
         data.get("apogee_pred"),
-        gps,
-        lat,
+        data.get("GPS"),
+        data.get("latitude"),
         data.get("acceleration"),
         data.get("magnetic_heading"),
         data.get("barometric_pressure"),
-        data["cycles"],
+        data.get("cycles"),
         data.get("voltage"),
         data.get("gyro_x"),
         data.get("gyro_y"),
-        data.get("gyro_z")
+        data.get("gyro_z"),
     ))
 
     conn.commit()
@@ -99,7 +103,7 @@ def direct_to_sql(data):
     """
     try:
         write_to_sql(data)
-        print(f"[SQL] Packet {data['cycles']}: alt={data['altitude_est']:.2f}m, state={data.get('flight_state', '?')}")
+        print(f"[SQL] Packet {data.get('cycles', '?')}: alt={data.get('altitude_est', 0):.2f}m, state={data.get('flight_state', '?')}")
     except Exception as e:
         print(f"[SQL ERROR] {e}")
 

@@ -32,6 +32,7 @@ export function mapBackendPacket(packet, { roll, missionStartMs, gpsOrigin }) {
     lat: packet.latitude ?? BASE_LAT + lonDelta * 0.65,
     roll,
     packetDropped: packet.droppedPackets ?? 0,
+    ctrlHealth: packet.ctrl_health,
     flightPhase: FLIGHT_STATE_PHASE[packet.flight_state] ?? undefined,
     missionTime,
     cycles: packet.cycles,

@@ -11,25 +11,27 @@ from simulator.simulator import rocket_simulator
 from data_processor.buffer import (
     buffer_to_frontend,
     telemetry_buffer,
-    start_api
+    start_api,
 )
 from database.db import init_database, direct_to_sql, get_stats
+from packet_normalize import normalize_packet
 
-SERIAL_PORT = "COM5"
-BAUD_RATE = 9600  # Match Arduino Serial.begin(9600)
-
+SERIAL_PORT = os.environ.get("MASA_SERIAL_PORT", "COM6")
+BAUD_RATE = int(os.environ.get("MASA_SERIAL_BAUD", "115200"))
 
 _shutdown_done = False
 
 
-def _normalize_packet(data):
-    """Map Arduino field names to backend canonical keys."""
-    if "longitude" in data and "GPS" not in data:
-        data["GPS"] = data["longitude"]
-    if "magnetic heading" in data:
-        data["magnetic_heading"] = data["magnetic heading"]
-    if "barometric pressure" in data:
-        data["barometric_pressure"] = data["barometric pressure"]
+def _extract_json_line(line):
+    """Pull a JSON object from a serial line (handles prefix noise)."""
+    line = line.strip()
+    if not line:
+        return None
+    start = line.find("{")
+    end = line.rfind("}")
+    if start == -1 or end == -1 or end <= start:
+        return None
+    return line[start : end + 1]
 
 
 def _shutdown_handler(signum=None, frame=None):
@@ -48,22 +50,23 @@ def _shutdown_handler(signum=None, frame=None):
 
 def process_packet(json_packet):
     try:
-        data = json.loads(json_packet)
-        _normalize_packet(data)
-        buffer_thread = threading.Thread(target=buffer_to_frontend, args=(data,))
+        raw = json.loads(json_packet) if isinstance(json_packet, str) else json_packet
+        data = normalize_packet(raw)
+        payload = json.dumps(data)
+        buffer_thread = threading.Thread(target=buffer_to_frontend, args=(payload,))
         buffer_thread.start()
         sql_thread = threading.Thread(target=direct_to_sql, args=(data,))
         sql_thread.start()
-    except json.JSONDecodeError as e:
-        print(f"[PACKET ERROR] Invalid JSON: {e}")
+    except (json.JSONDecodeError, ValueError) as e:
+        print(f"[PACKET ERROR] Invalid packet: {e}")
 
 
 def run_arduino_bridge():
-    """Read JSON from Arduino Serial, forward to process_packet. Runs until Ctrl+C."""
+    """Read JSON from Teensy serial, forward to process_packet. Runs until Ctrl+C."""
     try:
         import serial
     except ImportError:
-        print("Install pyserial for Arduino: pip install pyserial")
+        print("Install pyserial for Teensy: pip install pyserial")
         sys.exit(1)
 
     try:
@@ -71,6 +74,7 @@ def run_arduino_bridge():
         print(f"[SERIAL] Connected to {SERIAL_PORT} @ {BAUD_RATE}")
     except Exception as e:
         print(f"[SERIAL] Failed to open {SERIAL_PORT}: {e}")
+        print("[SERIAL] Close Serial Monitor or any app using this port.")
         sys.exit(1)
 
     buffer = ""
@@ -78,15 +82,12 @@ def run_arduino_bridge():
         while True:
             if ser.in_waiting:
                 buffer += ser.read(ser.in_waiting).decode("utf-8", errors="ignore")
+            buffer = buffer.replace("\r\n", "\n").replace("\r", "\n")
             while "\n" in buffer:
                 line, buffer = buffer.split("\n", 1)
-                line = line.strip()
-                if line and line.startswith("{"):
-                    try:
-                        json.loads(line)
-                        process_packet(line)
-                    except json.JSONDecodeError:
-                        pass
+                json_line = _extract_json_line(line)
+                if json_line:
+                    process_packet(json_line)
     except KeyboardInterrupt:
         pass
     finally:
@@ -94,9 +95,8 @@ def run_arduino_bridge():
 
 
 def main():
-    use_arduino = "--simulator" not in sys.argv  # Arduino by default; use --simulator for fake data
+    use_arduino = "--simulator" not in sys.argv
 
-    # Register crash/shutdown handler - flush last 30s to recovery_dump.json
     signal.signal(signal.SIGINT, _shutdown_handler)
     signal.signal(signal.SIGTERM, _shutdown_handler)
 
@@ -110,19 +110,18 @@ def main():
     api_thread.start()
 
     if use_arduino:
-        print("\nArduino mode – reading from Serial")
-        print("PATH 1: ARDUINO → BUFFER → API → FRONTEND")
-        print("PATH 2: ARDUINO → SQL DATABASE")
-        print(f"Port: {SERIAL_PORT} (edit SERIAL_PORT in main.py if wrong)\n")
+        print("\nTeensy mode - reading from Serial")
+        print("PATH 1: TEENSY -> BUFFER -> API -> FRONTEND")
+        print("PATH 2: TEENSY -> SQL DATABASE")
+        print(f"Port: {SERIAL_PORT} @ {BAUD_RATE} (MASA_SERIAL_PORT / MASA_SERIAL_BAUD)\n")
         try:
             run_arduino_bridge()
         finally:
-            # Flush on any exit (disconnect, error) - Ctrl+C uses signal handler
             _shutdown_handler()
     else:
         print("\nSimulator mode")
-        print("PATH 1: SIMULATOR → BUFFER → API → FRONTEND (10 Hz)")
-        print("PATH 2: SIMULATOR → SQL DATABASE\n")
+        print("PATH 1: SIMULATOR -> BUFFER -> API -> FRONTEND (10 Hz)")
+        print("PATH 2: SIMULATOR -> SQL DATABASE\n")
 
         sim_thread = threading.Thread(target=rocket_simulator, args=(process_packet,))
         sim_thread.start()
