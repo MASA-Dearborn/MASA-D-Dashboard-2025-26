@@ -45,14 +45,14 @@ Set your port before starting if needed:
 **Windows (PowerShell)**
 
 ```powershell
-$env:MASA_SERIAL_PORT = "COM3"
+$env:MASA_SERIAL_PORT = "COMx"
 npm run teensy
 ```
 
 **Windows (cmd)**
 
 ```cmd
-set MASA_SERIAL_PORT=COM3
+set MASA_SERIAL_PORT=COMx
 npm run teensy
 ```
 
